@@ -1,0 +1,98 @@
+- name: ZTE C320
+  data:
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.GponName
+      oid: .1.3.6.1.4.1.3902.1012.3.28.1.1.2
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.GponDescription
+      oid: .1.3.6.1.4.1.3902.1012.3.28.1.1.3
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.RtdEqd
+      oid: .1.3.6.1.4.1.3902.1012.3.11.4.1.1
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.DevMgmtTypeName
+      oid: .1.3.6.1.4.1.3902.1012.3.28.1.1.1
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.DevMgmtName
+      oid: .1.3.6.1.4.1.3902.1012.3.28.1.1.2
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.serial
+      oid: .1.3.6.1.4.1.3902.1012.3.28.1.1.5
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.VportMode
+      oid: .1.3.6.1.4.1.3902.1012.3.28.1.1.10
+      values:
+        "1": gemport
+        "2": onu
+        "3": manual
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.adminState
+      oid: .1.3.6.1.4.1.3902.1012.3.28.2.1.1
+      values:
+        "1": Enabled
+        "2": Disabled
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.phaseState
+      oid: .1.3.6.1.4.1.3902.1012.3.28.2.1.4
+      values:
+        "0": logging
+        "1": LOS
+        "2": syncMib
+        "3": Online
+        "4": PowerOff
+        "5": authFailed
+        "6": Offline
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.LastOnlineTime
+      oid: .1.3.6.1.4.1.3902.1012.3.28.2.1.5
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.LastOfflineTime
+      oid: .1.3.6.1.4.1.3902.1012.3.28.2.1.6
+    - profile: zte_c320_gpon
+      metric_key: gpon.ont.LastOfflineReason
+      oid: .1.3.6.1.4.1.3902.1012.3.28.2.1.7
+      values:
+        "1": unknown
+        "2": LOS
+        "3": LOSi
+        "4": lofi
+        "5": sfi
+        "6": loai
+        "7": loami
+        "8": authFail
+        "9": PowerOff
+        "10": deactiveSucc
+        "11": deactiveFail
+        "12": reboot
+        "13": shutdown
+    - profile: zte_c320_gpon
+      metric_key: gpon.uncfg.serial
+      oid: .1.3.6.1.4.1.3902.1012.3.13.3.1.2
+    - profile: zte_c320_gpon
+      metric_key: gpon.uncfg.psw
+      oid: .1.3.6.1.4.1.3902.1012.3.13.3.1.5
+    - profile: zte_c320_gpon
+      metric_key: gpon.uncfg.type
+      oid: .1.3.6.1.4.1.3902.1012.3.13.3.1.10
+    - profile: zte_c320_gpon
+      metric_key: gpon.uncfg.fwVersion
+      oid: .1.3.6.1.4.1.3902.1012.3.13.3.1.11
+    - profile: zte_c320_gpon
+      metric_key: gpon.optical.rx
+      oid: .1.3.6.1.4.1.3902.1012.3.50.12.1.1.10
+      formula: zte_rx
+    - profile: zte_c320_gpon
+      metric_key: gpon.optical.tx
+      oid: .1.3.6.1.4.1.3902.1012.3.50.12.1.1.14
+      formula: zte_tx
+    - profile: zte_c320_gpon
+      metric_key: gpon.optical.temp
+      oid: .1.3.6.1.4.1.3902.1012.3.50.12.1.1.19
+      formula: divide_256
+    - profile: zte_c320_gpon
+      metric_key: gpon.optical.voltage
+      oid: .1.3.6.1.4.1.3902.1012.3.50.12.1.1.17
+      formula: times_0.02
+    - profile: zte_c320_gpon
+      metric_key: gpon.optical.distance
+      oid: .1.3.6.1.4.1.3902.1012.3.11.4.1.2

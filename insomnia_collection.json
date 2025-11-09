@@ -1,0 +1,444 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-09-06T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2025.9.6",
+  "resources": [
+    {
+      "_id": "wrk_1",
+      "name": "NMS-ISP API",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_1",
+      "parentId": "wrk_1",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3000"
+      }
+    },
+    {
+      "_id": "fld_1",
+      "parentId": "wrk_1",
+      "name": "Customers",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_customers_get",
+      "parentId": "fld_1",
+      "name": "Get All Customers",
+  "url": "{{ base_url }}/api/customers",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_customers_post",
+      "parentId": "fld_1",
+      "name": "Create Customer",
+  "url": "{{ base_url }}/api/customers",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"John Doe\"\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_2",
+      "parentId": "wrk_1",
+      "name": "OLTs",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_olts_get",
+      "parentId": "fld_2",
+      "name": "Get All OLTs",
+  "url": "{{ base_url }}/api/olts",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_3",
+      "parentId": "wrk_1",
+      "name": "ODCs",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_odcs_get",
+      "parentId": "fld_3",
+      "name": "Get All ODCs",
+  "url": "{{ base_url }}/api/odcs",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_4",
+      "parentId": "wrk_1",
+      "name": "ODPs",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_odps_get",
+      "parentId": "fld_4",
+      "name": "Get All ODPs",
+  "url": "{{ base_url }}/api/odps",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_5",
+      "parentId": "wrk_1",
+      "name": "Subscriptions",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_subscriptions_get",
+      "parentId": "fld_5",
+      "name": "Get All Subscriptions",
+  "url": "{{ base_url }}/api/subscriptions",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_6",
+      "parentId": "wrk_1",
+      "name": "Fiber Routes",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_fiber_routes_get",
+      "parentId": "fld_6",
+      "name": "Get All Fiber Routes",
+  "url": "{{ base_url }}/api/fiber-routes",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_7",
+      "parentId": "wrk_1",
+      "name": "Auth",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_auth_register",
+      "parentId": "fld_7",
+      "name": "Register",
+      "url": "{{ base_url }}/api/auth/register",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"user1\",\n  \"email\": \"user1@example.com\",\n  \"password\": \"password\",\n  \"fullName\": \"Wahyu Wijaya\"\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_auth_login",
+      "parentId": "fld_7",
+      "name": "Login",
+      "url": "{{ base_url }}/api/auth/login",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"user1\",\n  \"password\": \"password\"\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_auth_logout",
+      "parentId": "fld_7",
+      "name": "Logout",
+      "url": "{{ base_url }}/api/auth/logout",
+      "method": "POST",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_auth_me",
+      "parentId": "fld_7",
+      "name": "Me",
+      "url": "{{ base_url }}/api/me",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_users",
+      "parentId": "wrk_1",
+      "name": "Users",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_list_users",
+      "parentId": "fld_users",
+      "name": "List Users",
+      "url": "{{ base_url }}/api/users",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_create_user",
+      "parentId": "fld_users",
+      "name": "Create User",
+      "url": "{{ base_url }}/api/users",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"user2\",\n  \"email\": \"user2@example.com\",\n  \"passwordHash\": \"pass2\"\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_roles",
+      "parentId": "wrk_1",
+      "name": "Roles",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_list_roles",
+      "parentId": "fld_roles",
+      "name": "List Roles",
+      "url": "{{ base_url }}/api/roles",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_create_role",
+      "parentId": "fld_roles",
+      "name": "Create Role",
+      "url": "{{ base_url }}/api/roles",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"admin\",\n  \"description\": \"Administrator\"\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_assign_role",
+      "parentId": "fld_roles",
+      "name": "Assign Role to User",
+      "url": "{{ base_url }}/api/users/{userId}/roles/{roleId}",
+      "method": "POST",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_add_scope_to_role",
+      "parentId": "fld_roles",
+      "name": "Add Scope to Role",
+      "url": "{{ base_url }}/api/roles/{roleId}/scopes/{scopeId}",
+      "method": "POST",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_scopes",
+      "parentId": "wrk_1",
+      "name": "Scopes",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_list_scopes",
+      "parentId": "fld_scopes",
+      "name": "List Scopes",
+      "url": "{{ base_url }}/api/scopes",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_create_scope",
+      "parentId": "fld_scopes",
+      "name": "Create Scope",
+      "url": "{{ base_url }}/api/scopes",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"subscription.read\",\n  \"kind\": \"scope\",\n  \"type\": \"app\",\n  \"description\": \"Read subscription data\"\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_admin",
+      "parentId": "wrk_1",
+      "name": "Admin",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_set_roles",
+      "parentId": "fld_admin",
+      "name": "Set Roles for User",
+      "url": "{{ base_url }}/api/admin/users/{userId}/set-roles",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"roleIds\": [\"roleId1\", \"roleId2\"]\n}"
+      },
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_sessions",
+      "parentId": "wrk_1",
+      "name": "Sessions",
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_list_sessions",
+      "parentId": "fld_sessions",
+      "name": "List My Sessions",
+      "url": "{{ base_url }}/api/sessions/me",
+      "method": "GET",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_revoke_one_session",
+      "parentId": "fld_sessions",
+      "name": "Revoke One Session",
+      "url": "{{ base_url }}/api/sessions/me/revoke/{sid}",
+      "method": "POST",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_revoke_all_sessions",
+      "parentId": "fld_sessions",
+      "name": "Revoke All Sessions",
+      "url": "{{ base_url }}/api/sessions/me/revoke-all",
+      "method": "POST",
+      "_type": "request",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    }
+  ]
+}

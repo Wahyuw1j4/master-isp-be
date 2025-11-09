@@ -1,0 +1,36 @@
+[
+  {
+    "name": "ZTE GPON C320",
+    "data": [
+      { "profile": "zte_c320_gpon", "metric_key": "name", "oid": "1.3.6.1.4.1.3902.1012.3.28.1.1.2" },
+      { "profile": "zte_c320_gpon", "metric_key": "desc", "oid": "1.3.6.1.4.1.3902.1012.3.28.1.1.3" },
+      { "profile": "zte_c320_gpon", "metric_key": "serial", "oid": "1.3.6.1.4.1.3902.1012.3.28.1.1.5" },
+      { 
+        "profile": "zte_c320_gpon",
+        "metric_key": "status",
+        "oid": "1.3.6.1.4.1.3902.1012.3.28.2.1.4",
+        "values": { 
+          "0": "logging", "1": "LOS", "2": "syncMib", 
+          "3": "Online", "4": "PowerOff", 
+          "5": "authFailed", "6": "Offline" 
+        }
+      },
+      { "profile": "zte_c320_gpon", "metric_key": "lastOnlineTime", "oid": "1.3.6.1.4.1.3902.1012.3.28.2.1.5" },
+      { "profile": "zte_c320_gpon", "metric_key": "lastOfflineTime", "oid": "1.3.6.1.4.1.3902.1012.3.28.2.1.6" },
+      { "profile": "zte_c320_gpon", "metric_key": "rx", "oid": "1.3.6.1.4.1.3902.1012.3.50.12.1.1.10", "formula": "zte_rx" },
+      { "profile": "zte_c320_gpon", "metric_key": "tx", "oid": "1.3.6.1.4.1.3902.1012.3.50.12.1.1.14", "formula": "zte_tx" },
+      { "profile": "zte_c320_gpon", "metric_key": "temp", "oid": "1.3.6.1.4.1.3902.1012.3.50.12.1.1.19", "formula": "divide_256" },
+      { "profile": "zte_c320_gpon", "metric_key": "voltage", "oid": "1.3.6.1.4.1.3902.1012.3.50.12.1.1.17", "formula": "times_0.02" },
+      { "profile": "zte_c320_gpon", "metric_key": "distance", "oid": "1.3.6.1.4.1.3902.1012.3.11.4.1.2" }
+    ]
+  },{
+    "name": "HSGQ EPON",
+    "data": [
+      { "profile": "hsgq_epon", "metric_key": "name", "oid": "1.3.6.1.4.1.50224.3.3.2.1.2" },
+      { "profile": "hsgq_epon", "metric_key": "macAddr", "oid": "1.3.6.1.4.1.50224.3.3.2.1.7" },
+      { "profile": "hsgq_epon", "metric_key": "status", "oid": "1.3.6.1.4.1.50224.3.3.2.1.8",
+        "values": { "1": "Up", "2": "Down", "3": "Testing" } },
+      { "profile": "hsgq_epon", "metric_key": "rx", "oid": "1.3.6.1.4.1.50224.3.3.3.1.4"}
+    ]
+  }
+]

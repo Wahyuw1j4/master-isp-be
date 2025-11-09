@@ -1,0 +1,462 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/**
+ * ===================== Enums =====================
+ */
+
+enum ScopeType {
+  oidc // contoh: openid, email, profile, offline_access
+  app // contoh: subscription.read, model.read
+}
+
+enum ScopeKind {
+  scope // granular: "subscription.read"
+  superScope // wildcard: "subscription" (cover "subscription.*")
+}
+
+/**
+ * ===================== Models =====================
+ */
+
+model users {
+  id                      String                   @id @default(cuid())
+  fullName                String
+  username                String                   @unique
+  email                   String                   @unique
+  passwordHash            String
+  sessionVersion          Int                      @default(1) // bump untuk tendang semua sesi user
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  roleId                  String?
+  role                    roles?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  // relations
+  sessions                sessions[]
+  userScopes              user_scopes[] // (opsional) grant langsung di luar role
+  technitian_members      technitian_team_member[]
+  installed_subscriptions subscriptions[]          @relation("InstallationByUser")
+  created_subscriptions   subscriptions[]          @relation("Creator")
+}
+
+model roles {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // relations
+  roleScopes role_scopes[]
+  users      users[]
+}
+
+model scopes {
+  id          String   @id @default(cuid())
+  name        String   @unique // "subscription.read"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // relations
+  roleScopes role_scopes[]
+  userScopes user_scopes[]
+}
+
+/**
+ * --------- Pivot Tables ---------
+ */
+
+// Role ↔ Scope
+model role_scopes {
+  roleId  String
+  scopeId String
+
+  role  roles  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  scope scopes @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, scopeId])
+  @@index([roleId])
+  @@index([scopeId])
+}
+
+// (Opsional) User ↔ Scope (grant langsung/override)
+model user_scopes {
+  userId  String
+  scopeId String
+
+  user  users  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope scopes @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, scopeId])
+  @@index([userId])
+  @@index([scopeId])
+}
+
+model sessions {
+  id             String    @id @default(cuid())
+  sid            String    @unique // UUID (string)
+  userId         String
+  userAgent      String?
+  ipAddr         String? // simpan IP sebagai string
+  createdAt      DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
+  expiresAt      DateTime // TTL absolut (mis. now()+15m)
+  revokedAt      DateTime?
+  sessionVersion Int // snapshot dari users.sessionVersion saat login
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sid])
+  @@index([userId, revokedAt, expiresAt]) // query sesi aktif user
+}
+
+// endof auth models
+
+model customers {
+  id         String  @id @default(cuid())
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  ktp_number String?
+  ktp_photo  String?
+  password   String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // relations
+  subscriptions subscriptions[]
+  invoices      invoice[]
+
+  @@index([name])
+}
+
+model services {
+  id         String   @id @default(cuid())
+  name       String
+  price      Float
+  speed      Float
+  created_at DateTime @default(now())
+  discount   Float    @default(0)
+  is_active  Boolean  @default(true)
+  updated_at DateTime @updatedAt
+
+  // relations
+  subscriptions subscriptions[]
+
+  @@index([name])
+}
+
+model subscriptions {
+  id String @id @default(cuid())
+
+  // link to customer and service entities (normalized)
+  customer_id String
+  customer    customers @relation(fields: [customer_id], references: [id])
+
+  service_id String
+  service    services @relation(fields: [service_id], references: [id])
+
+  // address fields
+  province       String? // province
+  kabupaten_kota String? // regency or city (same administrative level; provide one)
+  kecamatan      String? // district (subdivision of regency/city)
+  kelurahan      String? // subdistrict or village (subdivision of district)
+  postal_code    String? // postal code
+
+  // device / location fields
+  oid_identifier String?
+  serial_number  String?
+  mac_address    String?
+  status         String?
+  latitude       Float?
+  longitude      Float?
+  odc_id         String?
+  odc            odc?    @relation(fields: [odc_id], references: [id], onDelete: SetNull)
+  olt_id         String?
+  olt            olt?    @relation(fields: [olt_id], references: [id], onDelete: SetNull)
+  odp_id         String?
+  odp            odp?    @relation(fields: [odp_id], references: [id], onDelete: SetNull)
+
+  is_static_ip   Boolean @default(false)
+  ip_address     String?
+  odp_distance   Int?
+  
+  // pppoe
+  pppoe_username String?
+  pppoe_password String?
+
+  home_photo        String?
+  location_note     String?
+  cpe_photo         String?
+  speed_test_photo  String?
+  form_installation String?
+  description       String?
+
+  onus            onus[]
+  invoices        invoice[]
+  invoice_details invoice_detail[]
+
+  installation_date       DateTime?
+  installation_by_team_id String?
+  installation_by_team    technitian_team? @relation(fields: [installation_by_team_id], references: [id])
+  installation_by_user_id String?
+  installation_by_user    users?           @relation("InstallationByUser", fields: [installation_by_user_id], references: [id])
+  created_by              String?
+  created_by_user         users?           @relation("Creator", fields: [created_by], references: [id], onDelete: SetNull)
+
+  next_invoice_date DateTime?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  @@index([installation_by_team_id])
+  @@index([installation_by_user_id])
+  @@index([created_by])
+  @@index([customer_id])
+  @@index([service_id])
+  @@index([odc_id])
+  @@index([olt_id])
+  @@index([odp_id])
+}
+
+model onus {
+  id              String         @id @default(cuid())
+  olt             olt            @relation(fields: [olt_id], references: [id], onDelete: Cascade)
+  olt_id          String
+  subscription    subscriptions? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
+  subscription_id String?
+  oid_identifier  String // kunci konsisten: "OLT/slot-port/onu" atau serial
+  serial          String?
+  name            String?
+  mac_address     String?
+  description     String?
+  onu_index       Int? // index vendor jika ada
+
+  snmp_values snmp_values[]
+
+  @@unique([olt_id, oid_identifier])
+  @@index([olt_id])
+  @@index([subscription_id])
+  @@index([serial])
+}
+
+model snmp_values {
+  id         String   @id @default(cuid())
+  onu        onus     @relation(fields: [onu_id], references: [id], onDelete: Cascade)
+  onu_id     String
+  metric_key String
+  oid        String
+  value      String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([onu_id, metric_key])
+  @@index([onu_id, metric_key, created_at(sort: Desc)])
+  @@index([onu_id, created_at(sort: Desc)])
+}
+
+/**
+ * ========= MAPPING OID (DEFINISI) ========= *
+ */
+
+model oid_map {
+  id String @id @default(cuid())
+
+  // penanda profile/adapter SNMP yang dipakai OLT
+  // contoh: "zte_gpon", "hsgq_epon"
+  profile String
+
+  // nama metrik normalisasi (harus sama dengan snmp_value.metric_key)
+  // contoh: "gpon.ont.GponName", "gpon.optical.rx", "status"
+  metric_key String
+
+  // OID vendor
+  oid String
+
+  // opsional: peta nilai enum: {"1":"Enabled","2":"Disabled"} atau reason codes
+  values Json?
+
+  // opsional: nama fungsi konversi di kode (mis. "zte_rx", "zte_tx")
+  formula String?
+
+  @@unique([profile, metric_key])
+}
+
+model olt {
+  id              String          @id
+  name            String          @db.VarChar(100)
+  brand           String?         @db.VarChar(100)
+  type            String?         @db.VarChar(100)
+  ip_address      String?         @db.VarChar(45)
+  read_community  String?         @db.VarChar(100)
+  write_community String?         @db.VarChar(100)
+  latitude        Float?
+  longitude       Float?
+  odcs            odc[]
+  subscriptions   subscriptions[]
+  odps            odp[]
+  onus            onus[]
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+}
+
+model odc {
+  id            String          @id
+  name          String          @db.VarChar(100)
+  latitude      Float?
+  longitude     Float?
+  olt_id        String
+  olt           olt             @relation(fields: [olt_id], references: [id])
+  subscriptions subscriptions[]
+  odps          odp[]
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+}
+
+model odp {
+  id            String          @id
+  name          String          @db.VarChar(100)
+  latitude      Float?
+  longitude     Float?
+  odc_id        String
+  odc           odc             @relation(fields: [odc_id], references: [id])
+  olt_id        String
+  olt           olt             @relation(fields: [olt_id], references: [id])
+  subscriptions subscriptions[]
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+}
+
+model fiber_route {
+  id         String   @id
+  name       String   @db.VarChar(100)
+  polyline   Json[]
+  color      String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model invoice {
+  id         String @id @default(cuid())
+  invoice_no String @unique
+
+  customer_id String
+  customer    customers @relation(fields: [customer_id], references: [id])
+
+  total_invoice Float
+  has_tax       Boolean @default(false)
+  tax           Float?
+  grand_total   Float
+
+  paid_at        DateTime?
+  payment_method String?
+  receive_by     String?
+  approved_by    String?
+
+  pg_id          String?
+  pg_ref         String?
+  pg_created     DateTime?
+  no_va          String?
+  qris           String?
+  payment_amount Float?
+  status         String?   @default("unpaid")
+
+  description String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  payment_proof          String?
+  last_invoice_sent_date DateTime?
+
+  subscription_id String?
+  subscription    subscriptions? @relation(fields: [subscription_id], references: [id])
+
+  sku             String?
+  invoice_details invoice_detail[]
+
+  @@index([customer_id])
+  @@index([subscription_id])
+  @@index([invoice_no])
+}
+
+model invoice_detail {
+  id String @id @default(cuid())
+
+  subscription_id String?
+  subscription    subscriptions? @relation(fields: [subscription_id], references: [id])
+
+  invoice_no String
+  invoice    invoice? @relation(fields: [invoice_no], references: [invoice_no])
+
+  status      String?
+  index_month Int?
+  date        DateTime?
+
+  billing_name        String
+  billing_description String?
+  billing_price       Float
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([invoice_no])
+  @@index([subscription_id])
+  @@index([index_month])
+}
+
+model vendor_tenchnitian {
+  id             String   @id @default(cuid())
+  company_name   String
+  contact_person String?
+  email          String?  @db.VarChar(255)
+  address        String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+model technitian_team {
+  id         String   @id @default(cuid())
+  name       String
+  status     String?  @default("active")
+  leader     String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // relations
+  members       technitian_team_member[]
+  subscriptions subscriptions[]
+}
+
+model technitian_team_member {
+  member_id String @id @default(cuid())
+
+  team_id String
+  team    technitian_team @relation(fields: [team_id], references: [id], onDelete: Cascade)
+
+  user_id String
+  user    users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([team_id])
+  @@index([user_id])
+}
