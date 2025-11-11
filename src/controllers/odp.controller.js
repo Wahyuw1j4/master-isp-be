@@ -90,7 +90,7 @@ class OdpController extends BaseController {
         err.status = 404;
         return next(err);
       }
-      return this.sendResponse(res, 200, 'Odp retrieved', { data: odp });
+      return this.sendResponse(res, 200, 'Odp retrieved', odp );
     } catch (err) {
       next(err);
     }
@@ -101,7 +101,7 @@ class OdpController extends BaseController {
       const odp = await prismaQuery(() =>
         prisma.odp.create({ data: req.body })
       );
-      return this.sendResponse(res, 201, 'Odp created', { data: odp });
+      return this.sendResponse(res, 201, 'Odp created', odp );
     } catch (err) {
       next(err);
     }
@@ -115,7 +115,7 @@ class OdpController extends BaseController {
           data: req.body
         })
       );
-      return this.sendResponse(res, 200, 'Odp updated', { data: odp });
+      return this.sendResponse(res, 200, 'Odp updated', odp );
     } catch (err) {
       next(err);
     }

@@ -129,7 +129,7 @@ router.get('/coverage', requireSession, requireScope('subscription.read'), Subsc
 router.get('/subscriptions', requireSession, requireScope('subscription.read'), SubscriptionController.getAll)
 router.get('/subscriptions/:id', requireSession, requireScope('subscription.read'), SubscriptionController.getById)
 router.post('/subscriptions', requireSession, requireScope('subscription.create'), SubscriptionController.create)
-router.put('/subscriptions/:id', requireSession, requireScope('subscription.update'), SubscriptionController.updateProceed)
+router.put('/subscriptions/:id/update-proceed', requireSession, requireScope('subscription.update'), SubscriptionController.updateProceed)
 router.delete('/subscriptions/:id', requireSession, requireScope('subscription.delete'), SubscriptionController.delete)
 
 router.get('/fiber-routes', requireSession, fiberRouteController.getAll)

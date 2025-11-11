@@ -42,14 +42,14 @@ class OdcController extends BaseController {
       const odc = await prismaQuery(() =>
         prisma.odc.findUnique({
           where: { id: req.params.id },
-          include: { olt: true, subscriptions: true, odps: true }
+          include: { olt: true }
         }));
       if (!odc) {
         const err = new Error('Odc not found');
         err.status = 404;
         return next(err);
       }
-      return this.sendResponse(res, 200, 'Odc retrieved', { data: odc });
+      return this.sendResponse(res, 200, 'Odc retrieved', odc );
     } catch (err) {
       next(err);
     }
@@ -60,7 +60,7 @@ class OdcController extends BaseController {
       const odc = await prismaQuery(() =>
         prisma.odc.create({ data: req.body })
       );
-      return this.sendResponse(res, 201, 'Odc created', { data: odc });
+      return this.sendResponse(res, 201, 'Odc created', odc );
     } catch (err) {
       next(err);
     }
@@ -74,7 +74,7 @@ class OdcController extends BaseController {
           data: req.body
         })
       );
-      return this.sendResponse(res, 200, 'Odc updated', { data: odc });
+      return this.sendResponse(res, 200, 'Odc updated', odc);
     } catch (err) {
       next(err);
     }

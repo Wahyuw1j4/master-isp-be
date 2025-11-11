@@ -153,9 +153,10 @@ class SubscriptionController extends BaseController {
                     odc: true,
                     olt: true, 
                     odp: true, 
-                    customer: { select: { id: true, name: true } },
-                    service: { select: { id: true, name: true } },
-                    created_by_user: true
+                    customer: true,
+                    service: true,
+                    created_by_user: true,
+                    invoice_details: true
                 }
             });
             if (!subscription) {
@@ -218,13 +219,17 @@ class SubscriptionController extends BaseController {
 
     updateProceed = async (req, res, next) => {
         try {
+            const {olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password} = req.body;
             const subscription = await prisma.subscriptions.update({
                 where: { id: req.params.id },
                 data: { 
                     status: 'PROCEED',
-                    olt: { connect: { id: req.body.olt_id } },
-                    odc: { connect: { id: req.body.odc_id } },
-                    odp: { connect: { id: req.body.odp_id } }
+                    olt: { connect: { id: olt_id } },
+                    odc: { connect: { id: odc_id } },
+                    odp: { connect: { id: odp_id } },
+                    odp_distance: odp_distance,
+                    pppoe_username: pppoe_username,
+                    pppoe_password: pppoe_password
                 }
             });
             return this.sendResponse(res, 200, "Subscription updated to PROCEED", subscription);
