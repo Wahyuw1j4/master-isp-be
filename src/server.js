@@ -72,7 +72,7 @@ const randomNotify = async (socketIo) => {
         };
 
         socketIo.emit('coverage-notif', JSON.stringify(payload));
-        console.log('sending random notification next is ', nextInterval, 'ms');
+        // console.log('sending random notification next is ', nextInterval, 'ms');
         // schedule next notification
         setTimeout(() => randomNotify(socketIo), nextInterval);
     } else {

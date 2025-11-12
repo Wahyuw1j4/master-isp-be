@@ -145,6 +145,34 @@ class SubscriptionController extends BaseController {
         }
     }
 
+    searchSubscriptions = async (req, res, next) => {
+        try {
+            const q = (req.query.q || '').trim();
+            if (!q) return this.sendResponse(res, 200, 'Subscriptions search results', { data: [] });
+            console.log('q:', q);
+            const subscriptions = await prismaQuery(() =>
+                prisma.subscriptions.findMany({
+                    where: {
+                        OR: [
+                            { id: { contains: q, mode: 'insensitive' } },
+                            { customer: { name: { contains: q, mode: 'insensitive' } } },
+                            { customer: { phone: { contains: q, mode: 'insensitive' } } },
+                        ]
+                    },
+                    take: 10,
+                    orderBy: { created_at: 'desc' },
+                    include: {
+                        customer: { select: { id: true, name: true, phone: true } },
+                    }
+                })
+            );
+
+            return this.sendResponse(res, 200, 'Subscriptions search results', { data: subscriptions });
+        } catch (err) {
+            next(err);
+        }
+    }
+
     getById = async (req, res, next) => {
         try {
             const subscription = await prisma.subscriptions.findUnique({

@@ -33,22 +33,30 @@ enum ScopeKind {
  */
 
 model users {
-  id                      String                   @id @default(cuid())
-  fullName                String
-  username                String                   @unique
-  email                   String                   @unique
-  passwordHash            String
-  sessionVersion          Int                      @default(1) // bump untuk tendang semua sesi user
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  roleId                  String?
-  role                    roles?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  id                           String                   @id @default(cuid())
+  fullName                     String
+  username                     String                   @unique
+  email                        String                   @unique
+  passwordHash                 String
+  sessionVersion               Int                      @default(1) // bump untuk tendang semua sesi user
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+  roleId                       String?
+  role                         roles?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  metaData                     Json?
   // relations
-  sessions                sessions[]
-  userScopes              user_scopes[] // (opsional) grant langsung di luar role
-  technitian_members      technitian_team_member[]
-  installed_subscriptions subscriptions[]          @relation("InstallationByUser")
-  created_subscriptions   subscriptions[]          @relation("Creator")
+  sessions                     sessions[]
+  userScopes                   user_scopes[] // (opsional) grant langsung di luar role
+  technitian_members           technitian_team_member[]
+  installed_subscriptions      subscriptions[]          @relation("InstallationByUser")
+  created_subscriptions        subscriptions[]          @relation("Creator")
+  handled_ticket_subscriptions ticket_subscription[]    @relation("HandledTickets")
+
+  // opposite relations for ticket submitters
+  submitted_ticket_subscriptions ticket_subscription[] @relation("SubmittedTickets")
+  submitted_ticket_sites         ticket_site[]         @relation("SubmittedSiteTickets")
+
+  submitted_site_ticket_details ticket_site_detail[] @relation("SolvedByUser")
 }
 
 model roles {
@@ -142,6 +150,7 @@ model customers {
   // relations
   subscriptions subscriptions[]
   invoices      invoice[]
+  ticket_subscriptions ticket_subscription[]
 
   @@index([name])
 }
@@ -193,10 +202,10 @@ model subscriptions {
   odp_id         String?
   odp            odp?    @relation(fields: [odp_id], references: [id], onDelete: SetNull)
 
-  is_static_ip   Boolean @default(false)
-  ip_address     String?
-  odp_distance   Int?
-  
+  is_static_ip Boolean @default(false)
+  ip_address   String?
+  odp_distance Int?
+
   // pppoe
   pppoe_username String?
   pppoe_password String?
@@ -208,9 +217,10 @@ model subscriptions {
   form_installation String?
   description       String?
 
-  onus            onus[]
-  invoices        invoice[]
-  invoice_details invoice_detail[]
+  onus                 onus[]
+  invoices             invoice[]
+  invoice_details      invoice_detail[]
+  ticket_subscriptions ticket_subscription[]
 
   installation_date       DateTime?
   installation_by_team_id String?
@@ -441,8 +451,9 @@ model technitian_team {
   updated_at DateTime @updatedAt
 
   // relations
-  members       technitian_team_member[]
-  subscriptions subscriptions[]
+  members           technitian_team_member[]
+  subscriptions     subscriptions[]
+  maintenance_sites ticket_site[]
 }
 
 model technitian_team_member {
@@ -459,4 +470,78 @@ model technitian_team_member {
 
   @@index([team_id])
   @@index([user_id])
+}
+
+model ticket_subscription {
+  ticket_id               String         @id @default(cuid())
+  subscription_id         String?
+  subscription            subscriptions? @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+  customer_id             String?
+  customer                customers?     @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  subject_problem         String
+  customer_report         String?
+  technician_update_desc  String?
+  work_by                 String?
+  open_by                 String?
+  open_at                 DateTime?
+  closed_at               DateTime?
+  created_by              String?
+  ticket_close_date       DateTime?
+  status                  String?        @default("Open")
+  picture_from_customer   String?
+  picture_from_technician String?
+  created_at              DateTime       @default(now())
+  updated_at              DateTime       @updatedAt
+  submit_by               String?
+  submit_by_user          users?         @relation("SubmittedTickets", fields: [submit_by], references: [id], onDelete: SetNull)
+  handle_by_team          String?
+
+  // relation for the technician/user who handles the ticket (maps to users.handled_ticket_subscriptions)
+  work_by_user users? @relation("HandledTickets", fields: [work_by], references: [id], onDelete: SetNull)
+
+  @@index([subscription_id])
+  @@index([customer_id])
+  @@index([created_by])
+  @@index([submit_by])
+  @@index([handle_by_team])
+}
+
+model ticket_site {
+  mt_site_id         String               @id @default(cuid())
+  site_type          String?
+  problem_report     String
+  problem_picture    String?
+  solve_picture      String?
+  status             String?              @default("Open")
+  solved_at          DateTime?
+  submit_by          String?
+  submit_by_user     users?               @relation("SubmittedSiteTickets", fields: [submit_by], references: [id], onDelete: SetNull)
+  handle_by_team     String?
+  handle_by_team_rel technitian_team?     @relation(fields: [handle_by_team], references: [id], onDelete: SetNull)
+  created_by         String?
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @updatedAt
+  ticket_details     ticket_site_detail[]
+
+  @@index([mt_site_id])
+  @@index([created_by])
+}
+
+model ticket_site_detail {
+  maintenance_site_detail_id String      @id @default(cuid())
+  mt_site_id                 String?
+  site_id                    String
+  site                       ticket_site @relation(fields: [site_id], references: [mt_site_id], onDelete: Cascade)
+  solved_picture             String?
+  technician_report          String?
+  solved_at                  DateTime?
+  solved_by                  String?
+  solved_by_user             users?      @relation("SolvedByUser", fields: [solved_by], references: [id], onDelete: SetNull)
+  status                     String?     @default("open")
+  created_at                 DateTime    @default(now())
+  updated_at                 DateTime    @updatedAt
+
+  @@index([mt_site_id])
+  @@index([site_id])
+  @@index([solved_by])
 }

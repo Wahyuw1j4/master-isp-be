@@ -1,5 +1,6 @@
 // Semua route RBAC + session DB-based
 import express from 'express';
+import multer from 'multer';
 import AuthController from './controllers/auth.controller.js';
 import userController from './controllers/user.controller.js';
 import roleController from './controllers/role.controller.js';
@@ -21,7 +22,10 @@ import InvoiceDetailController from './controllers/invoice_detail.controller.js'
 import VendorTenchnitianController from './controllers/vendor_tenchnitian.controller.js';
 import TechnitianTeamController from './controllers/technitian_team.controller.js';
 import TechnitianTeamMemberController from './controllers/technitian_team_member.controller.js';
+import ticketSubscriptionController from './controllers/ticket_subscription.controller.js';
+import ticketSiteController from './controllers/ticket_site.controller.js';
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 50 MB limit
 
 // Auth
 router.post('/auth/login', AuthController.login);
@@ -57,6 +61,16 @@ router.get('/customers/:id', requireSession, CustomerController.getById)
 router.post('/customers', requireSession, CustomerController.create)
 router.put('/customers/:id', requireSession, CustomerController.update)
 router.delete('/customers/:id', requireSession, CustomerController.delete)
+
+// Subscription routes
+router.get('/coverage', requireSession, requireScope('subscription.read'), SubscriptionController.getCoverage)
+router.get('/subscriptions', requireSession, requireScope('subscription.read'), SubscriptionController.getAll)
+router.get('/subscriptions/search', requireSession, requireScope('subscription.read'), SubscriptionController.searchSubscriptions)
+router.get('/subscriptions/:id', requireSession, requireScope('subscription.read'), SubscriptionController.getById)
+router.post('/subscriptions', requireSession, requireScope('subscription.create'), SubscriptionController.create)
+router.put('/subscriptions/:id/update-proceed', requireSession, requireScope('subscription.update'), SubscriptionController.updateProceed)
+router.delete('/subscriptions/:id', requireSession, requireScope('subscription.delete'), SubscriptionController.delete)
+
 
 // Services
 router.get('/services', requireSession, ServicesController.paginateAll)
@@ -124,13 +138,24 @@ router.post('/odps', requireSession, OdpController.create)
 router.put('/odps/:id', requireSession, OdpController.update)
 router.delete('/odps/:id', requireSession, OdpController.delete)
 
-// Subscription routes
-router.get('/coverage', requireSession, requireScope('subscription.read'), SubscriptionController.getCoverage)
-router.get('/subscriptions', requireSession, requireScope('subscription.read'), SubscriptionController.getAll)
-router.get('/subscriptions/:id', requireSession, requireScope('subscription.read'), SubscriptionController.getById)
-router.post('/subscriptions', requireSession, requireScope('subscription.create'), SubscriptionController.create)
-router.put('/subscriptions/:id/update-proceed', requireSession, requireScope('subscription.update'), SubscriptionController.updateProceed)
-router.delete('/subscriptions/:id', requireSession, requireScope('subscription.delete'), SubscriptionController.delete)
+
+// Ticket subscription routes
+router.get('/ticket-subscriptions', requireSession, ticketSubscriptionController.getAll)
+router.get('/ticket-subscriptions/:id', requireSession, ticketSubscriptionController.getById)
+router.post('/ticket-subscriptions', upload.single('image_problem'), requireSession, ticketSubscriptionController.create)
+router.put('/ticket-subscriptions/:id', requireSession, ticketSubscriptionController.update)
+router.delete('/ticket-subscriptions/:id', requireSession, ticketSubscriptionController.delete)
+
+// Ticket site routes
+router.get('/ticket-sites', requireSession, ticketSiteController.getAll)
+router.get('/ticket-sites/:id', requireSession, ticketSiteController.getById)
+router.post('/ticket-sites', requireSession, ticketSiteController.create)
+router.put('/ticket-sites/:id', requireSession, ticketSiteController.update)
+router.delete('/ticket-sites/:id', requireSession, ticketSiteController.delete)
+
+// Ticket site detail helpers
+router.post('/ticket-sites/:siteId/details', requireSession, ticketSiteController.addDetail)
+router.get('/ticket-sites/:siteId/details', requireSession, ticketSiteController.listDetails)
 
 router.get('/fiber-routes', requireSession, fiberRouteController.getAll)
 router.post('/fiber-routes', requireSession, fiberRouteController.create)

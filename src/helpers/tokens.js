@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-const ACCESS_TTL_SEC = Number(process.env.ACCESS_TTL_SEC || 60 * 60 * 24) // default 1d
+const ACCESS_TTL_SEC = Number(process.env.ACCESS_TTL_SEC || 15 * 60) // default 15m
 
 export function signAccessToken({ user, scopes, sid }) {
   const now = Math.floor(Date.now()/1000)
