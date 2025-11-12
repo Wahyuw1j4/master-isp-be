@@ -45,11 +45,12 @@ class AuthController extends BaseController {
             const sid = crypto.randomUUID();
             const accessToken = signAccessToken({ user, scopes, sid });
             // FE menyimpan accessToken (memory/localStorage). Tidak ada refresh cookie.
+            const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 jam
             const session = {
                 userId: user.id,
                 sid,
                 userAgent: req.headers['user-agent'] || '',
-                expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12 jam
+                expiresAt, // 12 jam
                 ipAddr: req.ip || req.connection.remoteAddress || '',
                 sessionVersion: 1
             }
