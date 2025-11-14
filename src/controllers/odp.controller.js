@@ -40,7 +40,6 @@ class OdpController extends BaseController {
   getNearbyOdps = async (req, res, next) => {
     try {
       const { lat, lng, limit } = req.query;
-      console.log('lat, lng, limit:', lat, lng, limit);
       if (!lat || !lng) {
         const err = new Error('lat and lon query parameters are required');
         err.status = 400;
@@ -71,7 +70,7 @@ class OdpController extends BaseController {
           LIMIT ${lim}
         `
       );
-      return this.sendResponse(res, 200, 'Nearby ODPs retrieved', odps);
+      return this.sendResponse(res, 200, 'Nearby ODPs retrieved ', odps);
     } catch (err) {
       next(err);
     }
@@ -90,7 +89,7 @@ class OdpController extends BaseController {
         err.status = 404;
         return next(err);
       }
-      return this.sendResponse(res, 200, 'Odp retrieved', odp );
+      return this.sendResponse(res, 200, 'Odp retrieved', odp);
     } catch (err) {
       next(err);
     }
@@ -101,7 +100,7 @@ class OdpController extends BaseController {
       const odp = await prismaQuery(() =>
         prisma.odp.create({ data: req.body })
       );
-      return this.sendResponse(res, 201, 'Odp created', odp );
+      return this.sendResponse(res, 201, 'Odp created', odp);
     } catch (err) {
       next(err);
     }
@@ -115,7 +114,7 @@ class OdpController extends BaseController {
           data: req.body
         })
       );
-      return this.sendResponse(res, 200, 'Odp updated', odp );
+      return this.sendResponse(res, 200, 'Odp updated', odp);
     } catch (err) {
       next(err);
     }

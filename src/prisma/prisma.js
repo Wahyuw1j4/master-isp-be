@@ -1,7 +1,7 @@
 // Prisma client instance
 import { PrismaClient } from '../../generated/prisma/index.js';
 const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'], // aktifkan log query
+  log: [], // aktifkan log query
 })
 
 prisma.$on("query", async (e) => {

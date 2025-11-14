@@ -19,14 +19,14 @@ export class AppError extends Error {
 
 // ---- Prisma Client
 const prisma = new PrismaClient({
-  log: ["warn", "error"], // "info" biasanya berisik
+  log: [], // "info" biasanya berisik
 });
 
 // Optional: query logger yang ringkas
 prisma.$on("query", (e) => {
   // Hanya aktifkan saat development
   if (process.env.NODE_ENV !== "production") {
-    console.debug("[PRISMA:QUERY]", e.query);
+    // console.debug("[PRISMA:QUERY]", e.query);
     // params biasanya string JSON; jangan parse jika besar
     if (e.params?.length <= 500) console.debug("[PRISMA:PARAMS]", e.params);
     console.debug("[PRISMA:DURATION]", `${e.duration}ms`);
