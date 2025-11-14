@@ -84,7 +84,7 @@ const randomNotify = async (socketIo) => {
 
 
 // use origin-only referrer for cross-origin requests.
-const allowedOrigins = ['http://localhost:5173'];
+const allowedOrigins = ['http://localhost:5173', "https://demoisp.wahyuwijaya.biz.id"];
 app.use(cors({
     origin: function (origin, callback) {
         // allow requests with no origin (like mobile apps or curl)
