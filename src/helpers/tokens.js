@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
 const expiresAt = Math.floor(Date.now() / 1000) + 12 * 60 * 60 // 12 jam
-const ACCESS_TTL_SEC = Number(process.env.ACCESS_TTL_SEC || expiresAt) // default 15m
+const ACCESS_TTL_SEC = Number(expiresAt) // default 15m
 
 export function signAccessToken({ user, scopes, sid }) {
   const now = Math.floor(Date.now() / 1000)
