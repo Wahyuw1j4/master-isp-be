@@ -24,6 +24,7 @@ import TechnitianTeamController from './controllers/technitian_team.controller.j
 import TechnitianTeamMemberController from './controllers/technitian_team_member.controller.js';
 import ticketSubscriptionController from './controllers/ticket_subscription.controller.js';
 import ticketSiteController from './controllers/ticket_site.controller.js';
+import bpsController from './controllers/bps.controller.js';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 50 MB limit
 
@@ -161,6 +162,12 @@ router.get('/fiber-routes', requireSession, fiberRouteController.getAll)
 router.post('/fiber-routes', requireSession, fiberRouteController.create)
 router.put('/fiber-routes/:id', requireSession, fiberRouteController.update)
 router.delete('/fiber-routes/:id', requireSession, fiberRouteController.delete)
+
+
+router.get('/bps/provinces', requireSession, bpsController.getProvinsi)
+router.get('/bps/regencies', requireSession, bpsController.getKota)
+router.get('/bps/districts', requireSession, bpsController.getKecamatan)
+router.get('/bps/villages', requireSession, bpsController.getKelurahan)
 
 
 // Auth routes

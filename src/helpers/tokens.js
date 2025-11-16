@@ -1,7 +1,4 @@
 import jwt from 'jsonwebtoken'
-import crypto from 'crypto'
-
-
 
 export function signAccessToken({ user, scopes, sid }) {
   const now = Math.floor(Date.now() / 1000)     // ambil hanya sekali
