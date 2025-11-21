@@ -173,6 +173,263 @@ class SubscriptionController extends BaseController {
         }
     }
 
+    // Paginated getters by relation ids (service, customer, olt, odc, odp)
+    getByServiceId = async (req, res, next) => {
+        try {
+            const serviceId = req.params.serviceId;
+            const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+            const skip = (page - 1) * limit;
+
+            const where = { service_id: serviceId };
+            if (req.query.status) where.status = req.query.status;
+
+            const [data, total] = await prismaQuery(async () => {
+                const total = await prisma.subscriptions.count({ where });
+                const rows = await prisma.subscriptions.findMany({
+                    where,
+                    include: {
+                        customer: { select: { id: true, name: true } },
+                        service: { select: { id: true, name: true } },
+                        odc: { select: { id: true, name: true } },
+                        olt: { select: { id: true, name: true } },
+                        odp: { select: { id: true, name: true } }
+                    },
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: limit
+                });
+                return [rows, total];
+            });
+
+            const totalPages = Math.ceil(total / limit) || 1;
+            return this.sendResponse(res, 200, 'Subscriptions retrieved', { data, meta: { page, limit, total, totalPages } });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getByCustomerId = async (req, res, next) => {
+        try {
+            const customerId = req.params.customerId;
+            const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+            const skip = (page - 1) * limit;
+
+            const where = { customer_id: customerId };
+            if (req.query.status) where.status = req.query.status;
+
+            const [data, total] = await prismaQuery(async () => {
+                const total = await prisma.subscriptions.count({ where });
+                const rows = await prisma.subscriptions.findMany({
+                    where,
+                    include: {
+                        customer: { select: { id: true, name: true } },
+                        service: { select: { id: true, name: true } },
+                        odc: true,
+                        olt: true,
+                        odp: true
+                    },
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: limit
+                });
+                return [rows, total];
+            });
+
+            const totalPages = Math.ceil(total / limit) || 1;
+            return this.sendResponse(res, 200, 'Subscriptions retrieved', { data, meta: { page, limit, total, totalPages } });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getByOltId = async (req, res, next) => {
+        try {
+            const oltId = req.params.oltId;
+            const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+            const skip = (page - 1) * limit;
+
+            const where = { olt_id: oltId };
+            if (req.query.status) where.status = req.query.status;
+
+            const [data, total] = await prismaQuery(async () => {
+                const total = await prisma.subscriptions.count({ where });
+                const rows = await prisma.subscriptions.findMany({
+                    where,
+                    include: {
+                        customer: { select: { id: true, name: true } },
+                        service: { select: { id: true, name: true } },
+                        odc: true,
+                        olt: true,
+                        odp: true
+                    },
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: limit
+                });
+                return [rows, total];
+            });
+
+            const totalPages = Math.ceil(total / limit) || 1;
+            return this.sendResponse(res, 200, 'Subscriptions retrieved', { data, meta: { page, limit, total, totalPages } });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // Coordinates helpers: return subscription markers (only those with coordinates)
+    getCoordinatesByOltId = async (req, res, next) => {
+        try {
+            const oltId = req.params.oltId;
+            const coords = await prismaQuery(() => prisma.subscriptions.findMany({
+                where: {
+                    olt_id: oltId,
+                    latitude: { not: null },
+                    longitude: { not: null }
+                },
+                orderBy: { created_at: 'desc' },
+                select: {
+                    id: true,
+                    latitude: true,
+                    longitude: true,
+                    status: true,
+                    customer: { select: { id: true, name: true } },
+                    service: { select: { id: true, name: true } },
+                    odc: { select: { id: true, name: true } },
+                    odp: { select: { id: true, name: true } }
+                }
+            }));
+
+            return this.sendResponse(res, 200, 'Coordinates retrieved',  coords );
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getCoordinatesByOdcId = async (req, res, next) => {
+        try {
+            const odcId = req.params.odcId;
+            const coords = await prismaQuery(() => prisma.subscriptions.findMany({
+                where: {
+                    odc_id: odcId,
+                    latitude: { not: null },
+                    longitude: { not: null }
+                },
+                orderBy: { created_at: 'desc' },
+                select: {
+                    id: true,
+                    latitude: true,
+                    longitude: true,
+                    status: true,
+                    customer: { select: { id: true, name: true } },
+                    service: { select: { id: true, name: true } }
+                }
+            }));
+
+            return this.sendResponse(res, 200, 'Coordinates retrieved', coords );
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getCoordinatesByOdpId = async (req, res, next) => {
+        try {
+            const odpId = req.params.odpId;
+            const coords = await prismaQuery(() => prisma.subscriptions.findMany({
+                where: {
+                    odp_id: odpId,
+                    latitude: { not: null },
+                    longitude: { not: null }
+                },
+                orderBy: { created_at: 'desc' },
+                select: {
+                    id: true,
+                    latitude: true,
+                    longitude: true,
+                    status: true,
+                    customer: { select: { id: true, name: true } },
+                    service: { select: { id: true, name: true } }
+                }
+            }));
+
+            return this.sendResponse(res, 200, 'Coordinates retrieved', coords );
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getByOdcId = async (req, res, next) => {
+        try {
+            const odcId = req.params.odcId;
+            const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+            const skip = (page - 1) * limit;
+
+            const where = { odc_id: odcId };
+            if (req.query.status) where.status = req.query.status;
+
+            const [data, total] = await prismaQuery(async () => {
+                const total = await prisma.subscriptions.count({ where });
+                const rows = await prisma.subscriptions.findMany({
+                    where,
+                    include: {
+                        customer: { select: { id: true, name: true } },
+                        service: { select: { id: true, name: true } },
+                        odc: true,
+                        olt: true,
+                        odp: true
+                    },
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: limit
+                });
+                return [rows, total];
+            });
+
+            const totalPages = Math.ceil(total / limit) || 1;
+            return this.sendResponse(res, 200, 'Subscriptions retrieved', { data, meta: { page, limit, total, totalPages } });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getByOdpId = async (req, res, next) => {
+        try {
+            const odpId = req.params.odpId;
+            const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+            const skip = (page - 1) * limit;
+
+            const where = { odp_id: odpId };
+            if (req.query.status) where.status = req.query.status;
+
+            const [data, total] = await prismaQuery(async () => {
+                const total = await prisma.subscriptions.count({ where });
+                const rows = await prisma.subscriptions.findMany({
+                    where,
+                    include: {
+                        customer: { select: { id: true, name: true } },
+                        service: { select: { id: true, name: true } },
+                        odc: true,
+                        olt: true,
+                        odp: true
+                    },
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: limit
+                });
+                return [rows, total];
+            });
+
+            const totalPages = Math.ceil(total / limit) || 1;
+            return this.sendResponse(res, 200, 'Subscriptions retrieved', { data, meta: { page, limit, total, totalPages } });
+        } catch (err) {
+            next(err);
+        }
+    }
+
     getById = async (req, res, next) => {
         try {
             const subscription = await prisma.subscriptions.findUnique({

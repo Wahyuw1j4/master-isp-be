@@ -40,7 +40,6 @@ class OltController extends BaseController {
       const olt = await prismaQuery(() =>
         prisma.olt.findUnique({
           where: { id: req.params.id },
-          include: { odcs: true, subscriptions: true, odps: true }
         })
       );
       if (!olt) {
