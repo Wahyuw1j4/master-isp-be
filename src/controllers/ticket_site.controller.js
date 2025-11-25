@@ -1,4 +1,4 @@
-import { prisma, prismaQuery } from '../prisma.js';
+import { prisma, prismaQuery, prismaTx } from '../prisma.js';
 import { BaseController } from './controller.js';
 import siteController from './site.controller.js';
 import { compressAndUploadImageToR2, getR2SignedUrl } from '../helpers/compressAndUploadImageToR2.js';
@@ -15,7 +15,7 @@ class TicketSiteController extends BaseController {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const prefixWithDate = `${prefix}${yy}${mm}`; // TSyymm
 
-    // Cari record terakhir yang dimulai dengan prefix bulan ini -> jika tidak ada, seq tetap 1 (reset tiap bulan)
+    // Mulai dari seq berdasarkan record terakhir (jika ada), lalu loop sampai menemukan ID yang benar-benar unik
     const last = await prismaQuery(() =>
       prisma.ticket_site.findFirst({
         where: { mt_site_id: { startsWith: prefixWithDate } },
@@ -32,11 +32,26 @@ class TicketSiteController extends BaseController {
       }
     }
 
-    const seqStr = String(seq).padStart(4, '0'); // iiii
-    return `${prefixWithDate}${seqStr}`;
+    const maxAttempts = 10000;
+    let attempts = 0;
+    while (true) {
+      const seqStr = String(seq).padStart(4, '0'); // iiii
+      const candidate = `${prefixWithDate}${seqStr}`;
+
+      // cek apakah candidate sudah ada di DB
+      const exists = await prismaQuery(() => prisma.ticket_site.findUnique({ where: { mt_site_id: candidate }, select: { mt_site_id: true } }));
+      if (!exists) return candidate;
+
+      // jika sudah ada, increment dan ulangi
+      seq += 1;
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        throw new Error('Unable to generate unique mt_site_id after many attempts');
+      }
+    }
   }
 
-  generateMtDtlId = async () => {
+  generateMtDtlId = async (counter = 0) => {
     const prefix = `DTL`;
     const now = new Date();
     const yy = String(now.getFullYear() % 100).padStart(2, '0');
@@ -48,16 +63,29 @@ class TicketSiteController extends BaseController {
         orderBy: { created_at: 'desc' }
       })
     );
+
     let seq = 1;
     if (last && last.maintenance_site_detail_id) {
       const match = last.maintenance_site_detail_id.match(new RegExp(`^${prefixWithDate}(\\d{1,})$`));
       if (match) {
         const lastSeqNum = parseInt(match[1], 10);
-        if (!Number.isNaN(lastSeqNum)) seq = lastSeqNum + 1;
+        if (!Number.isNaN(lastSeqNum)) seq = lastSeqNum + 1 + counter;
       }
     }
-    const seqStr = String(seq).padStart(4, '0');
-    return `${prefixWithDate}${seqStr}`;
+
+    const maxAttempts = 10000;
+    let attempts = 0;
+    while (true) {
+      const seqStr = String(seq).padStart(4, '0');
+      const candidate = `${prefixWithDate}${seqStr}`;
+      const exists = await prismaQuery(() => prisma.ticket_site_detail.findUnique({ where: { maintenance_site_detail_id: candidate }, select: { maintenance_site_detail_id: true } }));
+      if (!exists) return candidate;
+      seq += 1;
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        throw new Error('Unable to generate unique maintenance_site_detail_id after many attempts');
+      }
+    }
   }
 
 
@@ -133,9 +161,7 @@ class TicketSiteController extends BaseController {
   }
 
   create = async (req, res, next) => {
-    console.log('req:', req);
     try {
-      console.log('reqbody:', req.body);
       const { problemReport, siteType, oltId, odcId, odpIds } = req.body;
       switch (siteType.toLowerCase()) {
         case 'olt':
@@ -150,82 +176,86 @@ class TicketSiteController extends BaseController {
         default:
           return this.sendResponse(res, 400, 'Invalid siteType. Must be OLT, ODC, or ODP');
       }
-
-      const mt_site_id = await this.generateMTId();
-      const data = {
-        mt_site_id,
-        problem_report: problemReport,
-        site_type: siteType.toLowerCase(),
-        submit_by: req.user && req.user.id ? req.user.id : null
-      };
-
-      console.log('file:', req.file);
-      const extentionFile = req.file.originalname.split('.').pop();
-      const fileName = "mtsite" + '_' + data.mt_site_id + '_' + Date.now() + '.' + extentionFile;
-      data.problem_picture = fileName;
-      if (req.file && req.file.buffer) {
-        await compressAndUploadImageToR2(
-          { buffer: req.file.buffer, filename: fileName, mimeType: req.file.mimetype },
-          { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
-        );
-      }
-
-      const createTicketSite = await prismaQuery(() => prisma.ticket_site.create({ data }));
-
-      let createSiteDetail;
-
-      switch (siteType.toLowerCase()) {
-        case 'olt': {
-          const mtDtlId = await this.generateMtDtlId(createTicketSite.mt_site_id);
-          createSiteDetail = await prismaQuery(() => prisma.ticket_site_detail.create({
-            data: {
-              maintenance_site_detail_id: mtDtlId,
-              mt_site_id: createTicketSite.mt_site_id,
-              site_id: oltId
-            }
-          }));
-          break;
+      const createMtSite = await prismaTx(async (tx, afterCommit) => {
+        const mt_site_id = await this.generateMTId();
+        const data = {
+          mt_site_id,
+          problem_report: problemReport,
+          site_type: siteType.toLowerCase(),
+          submit_by: req.user && req.user.id ? req.user.id : null
+        };
+        const extentionFile = req.file.originalname.split('.').pop();
+        const fileName = "mtsite" + '_' + data.mt_site_id + '_' + Date.now() + '.' + extentionFile;
+        data.problem_picture = fileName;
+        if (req.file && req.file.buffer) {
+          afterCommit(async () => {
+            await compressAndUploadImageToR2(
+              { buffer: req.file.buffer, filename: fileName, mimeType: req.file.mimetype },
+              { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
+            );
+          });
         }
-        case 'odc': {
-          const mtDtlId = await this.generateMtDtlId(createTicketSite.mt_site_id);
-          createSiteDetail = await prismaQuery(() => prisma.ticket_site_detail.create({
-            data: {
-              maintenance_site_detail_id: mtDtlId,
-              mt_site_id: createTicketSite.mt_site_id,
-              site_id: odcId
-            }
-          }));
-          break;
-        }
-        case 'odp': {
-          const createdDetails = [];
-          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-          for (const element of (odpIds || [])) {
+
+        const createTicketSite = await tx.ticket_site.create({ data });
+
+        let createSiteDetail;
+
+        switch (siteType.toLowerCase()) {
+          case 'olt': {
             const mtDtlId = await this.generateMtDtlId(createTicketSite.mt_site_id);
-            const detail = await prismaQuery(() =>
-              prisma.ticket_site_detail.create({
+            createSiteDetail = await tx.ticket_site_detail.create({
+              data: {
+                maintenance_site_detail_id: mtDtlId,
+                mt_site_id: createTicketSite.mt_site_id,
+                site_id: oltId
+              }
+            });
+            break;
+          }
+          case 'odc': {
+            const mtDtlId = await this.generateMtDtlId(createTicketSite.mt_site_id);
+            createSiteDetail = await tx.ticket_site_detail.create({
+              data: {
+                maintenance_site_detail_id: mtDtlId,
+                mt_site_id: createTicketSite.mt_site_id,
+                site_id: odcId
+              }
+            });
+            break;
+          }
+          case 'odp': {
+            const createdDetails = [];
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            let count = 0;
+            for (const element of (odpIds || [])) {
+              const mtDtlId = await this.generateMtDtlId(count);
+              console.log('mtDtlId:', count);
+              const detail = await tx.ticket_site_detail.create({
                 data: {
                   maintenance_site_detail_id: mtDtlId,
                   mt_site_id: createTicketSite.mt_site_id,
                   site_id: element
                 }
-              })
-            );
-            createdDetails.push(detail);
-            // jeda singkat antar pembuatan, sesuaikan ms jika perlu
-            await sleep(100);
+              });
+              createdDetails.push(detail);
+              count += 1;
+              await sleep(100);
+            }
+            createSiteDetail = createdDetails;
+            break;
           }
-          createSiteDetail = createdDetails;
-          break;
         }
-      }
 
-      const siteWithDetails = await prismaQuery(() => prisma.ticket_site.findUnique({
-        where: { mt_site_id: createTicketSite.mt_site_id },
-        include: { ticket_details: true, submit_by_user: true, handle_by_team_rel: true }
-      }));
+        const siteWithDetails = await tx.ticket_site.findUnique({
+          where: { mt_site_id: createTicketSite.mt_site_id },
+          include: { ticket_details: true, submit_by_user: true, handle_by_team_rel: true }
+        });
 
-      return this.sendResponse(res, 201, 'Ticket site created', siteWithDetails);
+        return siteWithDetails;
+      });
+
+
+      return this.sendResponse(res, 201, 'Ticket site created', createMtSite);
     } catch (err) {
       next(err);
     }
