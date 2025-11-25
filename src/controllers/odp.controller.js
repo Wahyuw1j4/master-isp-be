@@ -37,6 +37,23 @@ class OdpController extends BaseController {
     }
   }
 
+  searchOdps = async (req, res, next) => {
+    try {
+      const { q } = req.query;
+      const odps = await prismaQuery(() =>
+        prisma.odp.findMany({
+          where: {
+            name: { contains: q, mode: 'insensitive' },
+          },
+          select: { id: true, name: true }
+        })
+      );
+      return this.sendResponse(res, 200, 'ODP search results', odps);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   getNearbyOdps = async (req, res, next) => {
     try {
       const { lat, lng, limit } = req.query;

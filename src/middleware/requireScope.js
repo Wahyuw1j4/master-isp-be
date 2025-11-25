@@ -3,6 +3,14 @@ import { getScopesForUser, hasScope } from '../helpers/authz.js';
 import { Controller } from '../controllers/controller.js';
 
 export default function requireScope(needed) {
+  // Validate that the caller passed an array of scope names
+  if (!Array.isArray(needed)) {
+    throw new TypeError('requireScope expects an array of scope names');
+  }
+  if (!needed.every(n => typeof n === 'string' && n.length > 0)) {
+    throw new TypeError('requireScope expects array elements to be non-empty strings');
+  }
+
   return async (req, res, next) => {
     try {
       if (!req.user || !req.user.id) {

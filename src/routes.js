@@ -34,149 +34,145 @@ router.post('/auth/logout', requireSession, AuthController.logout);
 router.get('/me', requireSession, AuthController.me);
 
 // Users
-router.get('/users', requireSession, requireScope('user.read'), userController.list);
-router.post('/users', requireSession, requireScope('user.create'), userController.create);
+router.get('/users', requireSession, requireScope(['user.read']), userController.list);
+router.post('/users', requireSession, requireScope(['user.create']), userController.create);
 
 // Roles
-router.get('/roles', requireSession, requireScope('role.read'), roleController.list);
-router.post('/roles', requireSession, requireScope('role.create'), roleController.create);
+router.get('/roles', requireSession, requireScope(['role.read']), roleController.list);
+router.post('/roles', requireSession, requireScope(['role.create']), roleController.create);
 
-router.delete('/roles/:id', requireSession, requireScope('role.delete'), roleController.delete);
-router.post('/roles/:roleId/scopes/:scopeId', requireSession, requireScope('role.scope.add'), roleController.addScope);
+router.delete('/roles/:id', requireSession, requireScope(['role.delete']), roleController.delete);
+router.post('/roles/:roleId/scopes/:scopeId', requireSession, requireScope(['role.scope.add']), roleController.addScope);
 
 // Scopes
-router.get('/scopes', requireSession, requireScope('scope.read'), ScopeController.list);
-router.post('/scopes', requireSession, requireScope('scope.create'), ScopeController.create);
+router.get('/scopes', requireSession, requireScope(['scope.read']), ScopeController.list);
+router.post('/scopes', requireSession, requireScope(['scope.create']), ScopeController.create);
 
 // Admin
-router.post('/admin/users/:userId/set-roles', requireSession, requireScope('admin.setRoles'), AdminController.setRoles);
+router.post('/admin/users/:userId/set-roles', requireSession, requireScope(['admin.update']), AdminController.setRoles);
 
 // Sessions
 router.get('/sessions/me', requireSession, SessionController.listMine);
 router.post('/sessions/me/revoke/:sid', requireSession, SessionController.revokeOne);
 router.post('/sessions/me/revoke-all', requireSession, SessionController.revokeAll);
 
-router.get('/customers', requireSession, CustomerController.getAll)
-router.get('/customers/search', requireSession, CustomerController.searchCustomers)
-router.get('/customers/:id', requireSession, CustomerController.getById)
-router.post('/customers', requireSession, CustomerController.create)
-router.put('/customers/:id', requireSession, CustomerController.update)
-router.delete('/customers/:id', requireSession, CustomerController.delete)
+router.get('/customers', requireSession, requireScope(['customer.read']), CustomerController.getAll)
+router.get('/customers/search', requireSession, requireScope(['customer.read']), CustomerController.searchCustomers)
+router.get('/customers/:id', requireSession, requireScope(['customer.read']), CustomerController.getById)
+router.post('/customers', requireSession, requireScope(['customer.create']), CustomerController.create)
+router.put('/customers/:id', requireSession, requireScope(['customer.update']), CustomerController.update)
+router.delete('/customers/:id', requireSession, requireScope(['customer.delete']), CustomerController.delete)
 
 // Subscription routes
-router.get('/coverage', requireSession, requireScope('subscription.read'), SubscriptionController.getCoverage)
-router.get('/subscriptions', requireSession, requireScope('subscription.read'), SubscriptionController.getAll)
+router.get('/coverage', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoverage)
+router.get('/subscriptions', requireSession, requireScope(['subscription.read']), SubscriptionController.getAll)
 //get subscription by service id
-router.get('/subscriptions/service/:serviceId', requireSession, requireScope('subscription.read'), SubscriptionController.getByServiceId)
-router.get('/subscriptions/olt/:oltId', requireSession, requireScope('subscription.read'), SubscriptionController.getByOltId)
-router.get('/subscriptions/olt/:oltId/coordinates', requireSession, requireScope('subscription.read'), SubscriptionController.getCoordinatesByOltId)
-router.get('/subscriptions/odc/:odcId', requireSession, requireScope('subscription.read'), SubscriptionController.getByOdcId)
-router.get('/subscriptions/odc/:odcId/coordinates', requireSession, requireScope('subscription.read'), SubscriptionController.getCoordinatesByOdcId)
-router.get('/subscriptions/odp/:odpId', requireSession, requireScope('subscription.read'), SubscriptionController.getByOdpId)
-router.get('/subscriptions/odp/:odpId/coordinates', requireSession, requireScope('subscription.read'), SubscriptionController.getCoordinatesByOdpId)
-router.get('/subscriptions/search', requireSession, requireScope('subscription.read'), SubscriptionController.searchSubscriptions)
-router.get('/subscriptions/:id', requireSession, requireScope('subscription.read'), SubscriptionController.getById)
-router.post('/subscriptions', requireSession, requireScope('subscription.create'), SubscriptionController.create)
-router.put('/subscriptions/:id/update-proceed', requireSession, requireScope('subscription.update'), SubscriptionController.updateProceed)
-router.delete('/subscriptions/:id', requireSession, requireScope('subscription.delete'), SubscriptionController.delete)
+router.get('/subscriptions/service/:serviceId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByServiceId)
+router.get('/subscriptions/olt/:oltId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByOltId)
+router.get('/subscriptions/olt/:oltId/coordinates', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoordinatesByOltId)
+router.get('/subscriptions/odc/:odcId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByOdcId)
+router.get('/subscriptions/odc/:odcId/coordinates', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoordinatesByOdcId)
+router.get('/subscriptions/odp/:odpId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByOdpId)
+router.get('/subscriptions/odp/:odpId/coordinates', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoordinatesByOdpId)
+router.get('/subscriptions/search', requireSession, requireScope(['subscription.read']), SubscriptionController.searchSubscriptions)
+router.get('/subscriptions/:id', requireSession, requireScope(['subscription.read']), SubscriptionController.getById)
+router.post('/subscriptions', requireSession, requireScope(['subscription.create']), SubscriptionController.create)
+router.put('/subscriptions/:id/update-proceed', requireSession, requireScope(['subscription.update']), SubscriptionController.updateProceed)
+router.delete('/subscriptions/:id', requireSession, requireScope(['subscription.delete']), SubscriptionController.delete)
 
 
 // Services
 router.get('/services', requireSession, ServicesController.paginateAll)
-router.get('/services/get-all-active', requireSession, ServicesController.getAllActive)
-router.get('/services/get-all-inactive-too', requireSession, ServicesController.getAllInactiveToo)
-router.get('/services/:id', requireSession, ServicesController.getById)
-router.post('/services', requireSession, ServicesController.create)
-router.put('/services/:id', requireSession, ServicesController.update)
-router.delete('/services/:id', requireSession, ServicesController.delete)
+router.get('/services/get-all-active', requireSession, requireScope(['service.read']), ServicesController.getAllActive)
+router.get('/services/get-all-inactive-too', requireSession, requireScope(['service.read']), ServicesController.getAllInactiveToo)
+router.get('/services/:id', requireSession, requireScope(['service.read']), ServicesController.getById)
+router.post('/services', requireSession, requireScope(['service.create']), ServicesController.create)
+router.put('/services/:id', requireSession, requireScope(['service.update']), ServicesController.update)
+router.delete('/services/:id', requireSession, requireScope(['service.delete']), ServicesController.delete)
 
 // Invoices
-router.get('/invoices', requireSession, InvoiceController.getAll)
-router.get('/invoices/:id', requireSession, InvoiceController.getById)
-router.post('/invoices', requireSession, InvoiceController.create)
-router.put('/invoices/:id', requireSession, InvoiceController.update)
-router.delete('/invoices/:id', requireSession, InvoiceController.delete)
+router.get('/invoices', requireSession, requireScope(['invoice.read']), InvoiceController.getAll)
+router.get('/invoices/:id', requireSession, requireScope(['invoice.read']), InvoiceController.getById)
+router.post('/invoices', requireSession, requireScope(['invoice.create']), InvoiceController.create)
+router.put('/invoices/:id', requireSession, requireScope(['invoice.update']), InvoiceController.update)
+router.delete('/invoices/:id', requireSession, requireScope(['invoice.delete']), InvoiceController.delete)
 
 // Invoice details
-router.get('/invoice-details', requireSession, InvoiceDetailController.getAll)
-router.get('/invoice-details/:id', requireSession, InvoiceDetailController.getById)
-router.post('/invoice-details', requireSession, InvoiceDetailController.create)
-router.put('/invoice-details/:id', requireSession, InvoiceDetailController.update)
-router.delete('/invoice-details/:id', requireSession, InvoiceDetailController.delete)
+router.get('/invoice-details', requireSession, requireScope(['invoice_detail.read']), InvoiceDetailController.getAll)
+router.get('/invoice-details/:id', requireSession, requireScope(['invoice_detail.read']), InvoiceDetailController.getById)
+router.post('/invoice-details', requireSession, requireScope(['invoice_detail.create']), InvoiceDetailController.create)
+router.put('/invoice-details/:id', requireSession, requireScope(['invoice_detail.update']), InvoiceDetailController.update)
+router.delete('/invoice-details/:id', requireSession, requireScope(['invoice_detail.delete']), InvoiceDetailController.delete)
 
 // Vendor technitians
-router.get('/vendor-tenchnitians', requireSession, VendorTenchnitianController.getAll)
-router.get('/vendor-tenchnitians/:id', requireSession, VendorTenchnitianController.getById)
-router.post('/vendor-tenchnitians', requireSession, VendorTenchnitianController.create)
-router.put('/vendor-tenchnitians/:id', requireSession, VendorTenchnitianController.update)
-router.delete('/vendor-tenchnitians/:id', requireSession, VendorTenchnitianController.delete)
-
+router.get('/vendor-tenchnitians', requireSession, requireScope(['admin.read']), VendorTenchnitianController.getAll)
+router.get('/vendor-tenchnitians/:id', requireSession, requireScope(['admin.read']), VendorTenchnitianController.getById)
+router.post('/vendor-tenchnitians', requireSession, requireScope(['admin.create']), VendorTenchnitianController.create)
+router.put('/vendor-tenchnitians/:id', requireSession, requireScope(['admin.update']), VendorTenchnitianController.update)
+router.delete('/vendor-tenchnitians/:id', requireSession, requireScope(['admin.delete']), VendorTenchnitianController.delete)
 // Technician teams
-router.get('/technitian-teams', requireSession, TechnitianTeamController.getAll)
-router.get('/technitian-teams/:id', requireSession, TechnitianTeamController.getById)
-router.post('/technitian-teams', requireSession, TechnitianTeamController.create)
-router.put('/technitian-teams/:id', requireSession, TechnitianTeamController.update)
-router.delete('/technitian-teams/:id', requireSession, TechnitianTeamController.delete)
+router.get('/technitian-teams', requireSession, requireScope(['admin.read']), TechnitianTeamController.getAll)
+router.get('/technitian-teams/:id', requireSession, requireScope(['admin.read']), TechnitianTeamController.getById)
+router.post('/technitian-teams', requireSession, requireScope(['admin.create']), TechnitianTeamController.create)
+router.put('/technitian-teams/:id', requireSession, requireScope(['admin.update']), TechnitianTeamController.update)
+router.delete('/technitian-teams/:id', requireSession, requireScope(['admin.delete']), TechnitianTeamController.delete)
 
 // Technician team members
-router.get('/technitian-team-members', requireSession, TechnitianTeamMemberController.getAll)
-router.get('/technitian-team-members/:id', requireSession, TechnitianTeamMemberController.getById)
-router.post('/technitian-team-members', requireSession, TechnitianTeamMemberController.create)
-router.put('/technitian-team-members/:id', requireSession, TechnitianTeamMemberController.update)
-router.delete('/technitian-team-members/:id', requireSession, TechnitianTeamMemberController.delete)
+router.get('/technitian-team-members', requireSession, requireScope(['manager_technitian.read']), TechnitianTeamMemberController.getAll)
+router.get('/technitian-team-members/:id', requireSession, requireScope(['manager_technitian.read']), TechnitianTeamMemberController.getById)
+router.post('/technitian-team-members', requireSession, requireScope(['manager_technitian.create']), TechnitianTeamMemberController.create)
+router.put('/technitian-team-members/:id', requireSession, requireScope(['manager_technitian.update']), TechnitianTeamMemberController.update)
+router.delete('/technitian-team-members/:id', requireSession, requireScope(['manager_technitian.delete']), TechnitianTeamMemberController.delete)
 
 // Olt routes
-router.get('/olts', requireSession, OltController.getAll)
-router.get('/olts/:id', requireSession, OltController.getById)
-router.post('/olts', requireSession, OltController.create)
-router.put('/olts/:id', requireSession, OltController.update)
-router.delete('/olts/:id', requireSession, OltController.delete)
+router.get('/olts', requireSession, requireScope(['site.read']), OltController.getAll)
+router.get('/olts/search', requireSession, requireScope(['site.read']), OltController.searchOlts)
+router.get('/olts/:id', requireSession, requireScope(['site.read']), OltController.getById)
+router.post('/olts', requireSession, requireScope(['site.create']), OltController.create)
+router.put('/olts/:id', requireSession, requireScope(['site.update']), OltController.update)
+router.delete('/olts/:id', requireSession, requireScope(['site.delete']), OltController.delete)
 
 // Odc routes
-router.get('/odcs', requireSession, OdcController.getAll)
-router.get('/odcs/:id', requireSession, OdcController.getById)
-router.post('/odcs', requireSession, OdcController.create)
-router.put('/odcs/:id', requireSession, OdcController.update)
-router.delete('/odcs/:id', requireSession, OdcController.delete)
+router.get('/odcs', requireSession, requireScope(['site.read']), OdcController.getAll)
+router.get('/odcs/search', requireSession, requireScope(['site.read']), OdcController.searchOdcs)
+router.get('/odcs/:id', requireSession, requireScope(['site.read']), OdcController.getById)
+router.post('/odcs', requireSession, requireScope(['site.create']), OdcController.create)
+router.put('/odcs/:id', requireSession, requireScope(['site.update']), OdcController.update)
+router.delete('/odcs/:id', requireSession, requireScope(['site.delete']), OdcController.delete)
 
 // Odp routes
-router.get('/odps', requireSession, OdpController.getAll)
-router.get('/get-nearby-odps', requireSession, OdpController.getNearbyOdps)
-router.get('/odps/:id', requireSession, OdpController.getById)
-router.post('/odps', requireSession, OdpController.create)
-router.put('/odps/:id', requireSession, OdpController.update)
-router.delete('/odps/:id', requireSession, OdpController.delete)
+router.get('/odps', requireSession, requireScope(['site.read']), OdpController.getAll)
+router.get('/odps/search', requireSession, requireScope(['site.read']), OdpController.searchOdps)
+router.get('/get-nearby-odps', requireSession, requireScope(['site.read']), OdpController.getNearbyOdps)
+router.get('/odps/:id', requireSession, requireScope(['site.read']), OdpController.getById)
+router.post('/odps', requireSession, requireScope(['site.create']), OdpController.create)
+router.put('/odps/:id', requireSession, requireScope(['site.update']), OdpController.update)
+router.delete('/odps/:id', requireSession, requireScope(['site.delete']), OdpController.delete)
 
 
 // Ticket subscription routes
-router.get('/ticket-subscriptions', requireSession, ticketSubscriptionController.getAll)
-router.get('/ticket-subscriptions/:id', requireSession, ticketSubscriptionController.getById)
-router.post('/ticket-subscriptions', upload.single('image_problem'), requireSession, ticketSubscriptionController.create)
-router.put('/ticket-subscriptions/:id', requireSession, ticketSubscriptionController.update)
-router.delete('/ticket-subscriptions/:id', requireSession, ticketSubscriptionController.delete)
-
+router.get('/ticket-subscriptions', requireSession, requireScope(['maintenance.read']), ticketSubscriptionController.getAll)
+router.get('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.read']), ticketSubscriptionController.getById)
+router.post('/ticket-subscriptions', upload.single('image_problem'), requireSession, requireScope(['maintenance.create']), ticketSubscriptionController.create)
+router.put('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.update']), ticketSubscriptionController.update)
+router.delete('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.delete']), ticketSubscriptionController.delete)
 // Ticket site routes
-router.get('/ticket-sites', requireSession, ticketSiteController.getAll)
-router.get('/ticket-sites/:id', requireSession, ticketSiteController.getById)
-router.post('/ticket-sites', requireSession, ticketSiteController.create)
-router.put('/ticket-sites/:id', requireSession, ticketSiteController.update)
-router.delete('/ticket-sites/:id', requireSession, ticketSiteController.delete)
-
-// Ticket site detail helpers
-router.post('/ticket-sites/:siteId/details', requireSession, ticketSiteController.addDetail)
-router.get('/ticket-sites/:siteId/details', requireSession, ticketSiteController.listDetails)
-
-router.get('/fiber-routes', requireSession, fiberRouteController.getAll)
-router.post('/fiber-routes', requireSession, fiberRouteController.create)
-router.put('/fiber-routes/:id', requireSession, fiberRouteController.update)
-router.delete('/fiber-routes/:id', requireSession, fiberRouteController.delete)
+router.get('/ticket-sites', requireSession, requireScope(['maintenance.read']), ticketSiteController.getAll)
+router.get('/ticket-sites/:id', requireSession, requireScope(['maintenance.read']), ticketSiteController.getById)
+router.post('/ticket-sites', upload.single('image_problem'), requireSession, requireScope(['maintenance.create']), ticketSiteController.create)
+router.put('/ticket-sites/:id', requireSession, requireScope(['maintenance.update']), ticketSiteController.update)
+router.delete('/ticket-sites/:id', requireSession, requireScope(['maintenance.delete']), ticketSiteController.delete)
 
 
-router.get('/bps/provinces', requireSession, bpsController.getProvinsi)
-router.get('/bps/regencies', requireSession, bpsController.getKota)
-router.get('/bps/districts', requireSession, bpsController.getKecamatan)
-router.get('/bps/villages', requireSession, bpsController.getKelurahan)
+router.get('/fiber-routes', requireSession, requireScope(['admin.read']), fiberRouteController.getAll)
+router.post('/fiber-routes', requireSession, requireScope(['admin.create']), fiberRouteController.create)
+router.put('/fiber-routes/:id', requireSession, requireScope(['admin.update']), fiberRouteController.update)
+router.delete('/fiber-routes/:id', requireSession, requireScope(['admin.delete']), fiberRouteController.delete)
 
+router.get('/bps/provinces', requireSession, requireScope(['subscription.read']), bpsController.getProvinsi)
+router.get('/bps/regencies', requireSession, requireScope(['subscription.read']), bpsController.getKota)
+router.get('/bps/districts', requireSession, requireScope(['subscription.read']), bpsController.getKecamatan)
+router.get('/bps/villages', requireSession, requireScope(['subscription.read']), bpsController.getKelurahan)
 
 // Auth routes
 router.post('/auth/register', AuthController.register)

@@ -97,7 +97,7 @@ class TicketSubscriptionController extends BaseController {
                 submit_by: req.user && req.user.id,
             };
             const extentionFile = req.file.originalname.split('.').pop();
-            const fileName = "tsubs" + '_' + data.subscription_id + '_' + Date.now() + '.' + extentionFile;
+            const fileName = "mtsubs" + '_' + data.subscription_id + '_' + Date.now() + '.' + extentionFile;
             data.picture_from_customer = fileName;
             const ticket = await prismaQuery(() => prisma.ticket_subscription.create({ data }));
 

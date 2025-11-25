@@ -511,9 +511,7 @@ model ticket_site {
   site_type          String?
   problem_report     String
   problem_picture    String?
-  solve_picture      String?
   status             String?              @default("Open")
-  solved_at          DateTime?
   submit_by          String?
   submit_by_user     users?               @relation("SubmittedSiteTickets", fields: [submit_by], references: [id], onDelete: SetNull)
   handle_by_team     String?
@@ -530,8 +528,8 @@ model ticket_site {
 model ticket_site_detail {
   maintenance_site_detail_id String      @id @default(cuid())
   mt_site_id                 String?
+  mt_site                    ticket_site? @relation(fields: [mt_site_id], references: [mt_site_id], onDelete: Cascade)
   site_id                    String
-  site                       ticket_site @relation(fields: [site_id], references: [mt_site_id], onDelete: Cascade)
   solved_picture             String?
   technician_report          String?
   solved_at                  DateTime?

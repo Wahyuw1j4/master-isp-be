@@ -35,6 +35,23 @@ class OltController extends BaseController {
     }
   }
 
+  searchOlts = async (req, res, next) => {
+    try {
+      const { q } = req.query;
+      const olts = await prismaQuery(() =>
+        prisma.olt.findMany({
+          where: {
+            name: { contains: q, mode: 'insensitive' },
+          },
+          select: { id: true, name: true }
+        })
+      );
+      return this.sendResponse(res, 200, 'OLT search results', olts);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   getById = async (req, res, next) => {
     try {
       const olt = await prismaQuery(() =>

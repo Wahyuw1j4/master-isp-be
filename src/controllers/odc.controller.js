@@ -37,6 +37,23 @@ class OdcController extends BaseController {
     }
   }
 
+  searchOdcs = async (req, res, next) => {
+    try {
+      const { q } = req.query;
+      const odcs = await prismaQuery(() =>
+        prisma.odc.findMany({
+          where: {
+            name: { contains: q, mode: 'insensitive' },
+          },
+          select: { id: true, name: true }
+        })
+      );
+      return this.sendResponse(res, 200, 'ODC search results', odcs);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   getById = async (req, res, next) => {
     try {
       const odc = await prismaQuery(() =>
