@@ -25,6 +25,7 @@ import TechnitianTeamMemberController from './controllers/technitian_team_member
 import ticketSubscriptionController from './controllers/ticket_subscription.controller.js';
 import ticketSiteController from './controllers/ticket_site.controller.js';
 import bpsController from './controllers/bps.controller.js';
+import whatsappController from './controllers/whatsapp.controller.js';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 50 MB limit
 
@@ -173,6 +174,15 @@ router.get('/bps/provinces', requireSession, requireScope(['subscription.read'])
 router.get('/bps/regencies', requireSession, requireScope(['subscription.read']), bpsController.getKota)
 router.get('/bps/districts', requireSession, requireScope(['subscription.read']), bpsController.getKecamatan)
 router.get('/bps/villages', requireSession, requireScope(['subscription.read']), bpsController.getKelurahan)
+
+// WhatsApp routes
+router.post('/whatsapp/sessions', requireSession, whatsappController.createSession)
+router.get('/whatsapp/sessions', requireSession, whatsappController.listAll)
+router.get('/whatsapp/sessions/:name/status', requireSession, whatsappController.getSessionStatus)
+router.get('/whatsapp/sessions/:name/qr', requireSession, whatsappController.getSessionQR)
+router.post('/whatsapp/sessions/:name/send', requireSession, whatsappController.sendMessage)
+router.post('/whatsapp/sessions/:name/restart', requireSession, whatsappController.restartSession)
+router.delete('/whatsapp/sessions/:name', requireSession, whatsappController.deleteSession)
 
 // Auth routes
 router.post('/auth/register', AuthController.register)

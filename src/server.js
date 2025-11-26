@@ -9,6 +9,7 @@ import { setupSocket } from '../socketio/socket.js';
 import { Controller } from './controllers/controller.js';
 import { Server } from 'socket.io';
 import { prisma, prismaQuery } from './prisma.js';
+import { restoreAllSessions } from './helpers/waService.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -150,6 +151,7 @@ app.use((err, req, res, next) => {
     return Controller.sendResponse(res, err.status || 500, err.message || "Internal Server Error");
 });
 
-server.listen(port, () => {
+server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
+    await restoreAllSessions();
 });

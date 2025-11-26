@@ -148,8 +148,8 @@ model customers {
   updated_at DateTime @updatedAt
 
   // relations
-  subscriptions subscriptions[]
-  invoices      invoice[]
+  subscriptions        subscriptions[]
+  invoices             invoice[]
   ticket_subscriptions ticket_subscription[]
 
   @@index([name])
@@ -526,7 +526,7 @@ model ticket_site {
 }
 
 model ticket_site_detail {
-  maintenance_site_detail_id String      @id @default(cuid())
+  maintenance_site_detail_id String       @id @default(cuid())
   mt_site_id                 String?
   mt_site                    ticket_site? @relation(fields: [mt_site_id], references: [mt_site_id], onDelete: Cascade)
   site_id                    String
@@ -534,12 +534,98 @@ model ticket_site_detail {
   technician_report          String?
   solved_at                  DateTime?
   solved_by                  String?
-  solved_by_user             users?      @relation("SolvedByUser", fields: [solved_by], references: [id], onDelete: SetNull)
-  status                     String?     @default("open")
-  created_at                 DateTime    @default(now())
-  updated_at                 DateTime    @updatedAt
+  solved_by_user             users?       @relation("SolvedByUser", fields: [solved_by], references: [id], onDelete: SetNull)
+  status                     String?      @default("open")
+  created_at                 DateTime     @default(now())
+  updated_at                 DateTime     @updatedAt
 
   @@index([mt_site_id])
   @@index([site_id])
   @@index([solved_by])
+}
+
+enum wa_session_status {
+  CONNECTING
+  OPEN
+  CLOSED
+  LOGGED_OUT
+}
+
+enum wa_key_type {
+  PREKEY
+  SESSION
+  SENDER_KEY
+  APP_STATE_SYNC
+  IDENTITY
+  OTHERS
+}
+
+model whatsapp_account {
+  id           String            @id @default(cuid())
+  label        String?
+  phone_number String?           @unique
+  is_business  Boolean           @default(false)
+  sessions     whatsapp_session[]
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @updatedAt
+}
+
+model whatsapp_session {
+  id                  String           @id @default(cuid())
+  account_id          String?
+  account             whatsapp_account? @relation(fields: [account_id], references: [id])
+  name                String           @unique
+  status              wa_session_status  @default(CONNECTING)
+  qr_raw              String?
+  qr_updated_at       DateTime?
+  connected_at        DateTime?
+  disconnected_at     DateTime?
+  last_conn_update_at DateTime?
+  webhook_url         String?
+  meta                Json?
+  creds               whatsapp_creds?
+  keys                whatsapp_key[]
+  logs                whatsapp_message_log[]
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
+}
+
+model whatsapp_creds {
+  session_id String          @id
+  session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  data       Json
+  version    Int              @default(1)
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+}
+
+model whatsapp_key {
+  id         String           @id @default(cuid())
+  session_id String
+  session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  type       wa_key_type
+  key_id     String
+  value      Json
+  scope      String?
+
+  @@unique([session_id, type, key_id, scope])
+  @@index([session_id, type])
+  @@index([key_id])
+  @@index([scope])
+}
+
+model whatsapp_message_log {
+  id         String           @id @default(cuid())
+  session_id String
+  session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  direction  String // "IN" | "OUT"
+  jid        String
+  message_id String?
+  message    Json
+  status     String?
+  error      String?
+  created_at DateTime         @default(now())
+
+  @@index([session_id, created_at])
+  @@index([jid])
 }

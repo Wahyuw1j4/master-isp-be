@@ -4,6 +4,12 @@ CREATE TYPE "public"."ScopeType" AS ENUM ('oidc', 'app');
 -- CreateEnum
 CREATE TYPE "public"."ScopeKind" AS ENUM ('scope', 'superScope');
 
+-- CreateEnum
+CREATE TYPE "public"."wa_session_status" AS ENUM ('CONNECTING', 'OPEN', 'CLOSED', 'LOGGED_OUT');
+
+-- CreateEnum
+CREATE TYPE "public"."wa_key_type" AS ENUM ('PREKEY', 'SESSION', 'SENDER_KEY', 'APP_STATE_SYNC', 'IDENTITY', 'OTHERS');
+
 -- CreateTable
 CREATE TABLE "public"."users" (
     "id" TEXT NOT NULL,
@@ -14,6 +20,8 @@ CREATE TABLE "public"."users" (
     "sessionVersion" INTEGER NOT NULL DEFAULT 1,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "roleId" TEXT,
+    "metaData" JSONB,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -38,14 +46,6 @@ CREATE TABLE "public"."scopes" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "scopes_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."user_roles" (
-    "userId" TEXT NOT NULL,
-    "roleId" TEXT NOT NULL,
-
-    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("userId","roleId")
 );
 
 -- CreateTable
@@ -115,15 +115,25 @@ CREATE TABLE "public"."subscriptions" (
     "id" TEXT NOT NULL,
     "customer_id" TEXT NOT NULL,
     "service_id" TEXT NOT NULL,
+    "province" TEXT,
+    "kabupaten_kota" TEXT,
+    "kecamatan" TEXT,
+    "kelurahan" TEXT,
+    "postal_code" TEXT,
     "oid_identifier" TEXT,
     "serial_number" TEXT,
     "mac_address" TEXT,
     "status" TEXT,
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
-    "odc_id" TEXT NOT NULL,
-    "olt_id" TEXT NOT NULL,
-    "odp_id" TEXT NOT NULL,
+    "odc_id" TEXT,
+    "olt_id" TEXT,
+    "odp_id" TEXT,
+    "is_static_ip" BOOLEAN NOT NULL DEFAULT false,
+    "ip_address" TEXT,
+    "odp_distance" INTEGER,
+    "pppoe_username" TEXT,
+    "pppoe_password" TEXT,
     "home_photo" TEXT,
     "location_note" TEXT,
     "cpe_photo" TEXT,
@@ -133,6 +143,7 @@ CREATE TABLE "public"."subscriptions" (
     "installation_date" TIMESTAMP(3),
     "installation_by_team_id" TEXT,
     "installation_by_user_id" TEXT,
+    "created_by" TEXT,
     "next_invoice_date" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -321,6 +332,132 @@ CREATE TABLE "public"."technitian_team_member" (
     CONSTRAINT "technitian_team_member_pkey" PRIMARY KEY ("member_id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."ticket_subscription" (
+    "ticket_id" TEXT NOT NULL,
+    "subscription_id" TEXT,
+    "customer_id" TEXT,
+    "subject_problem" TEXT NOT NULL,
+    "customer_report" TEXT,
+    "technician_update_desc" TEXT,
+    "work_by" TEXT,
+    "open_by" TEXT,
+    "open_at" TIMESTAMP(3),
+    "closed_at" TIMESTAMP(3),
+    "created_by" TEXT,
+    "ticket_close_date" TIMESTAMP(3),
+    "status" TEXT DEFAULT 'Open',
+    "picture_from_customer" TEXT,
+    "picture_from_technician" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "submit_by" TEXT,
+    "handle_by_team" TEXT,
+
+    CONSTRAINT "ticket_subscription_pkey" PRIMARY KEY ("ticket_id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ticket_site" (
+    "mt_site_id" TEXT NOT NULL,
+    "site_type" TEXT,
+    "problem_report" TEXT NOT NULL,
+    "problem_picture" TEXT,
+    "status" TEXT DEFAULT 'Open',
+    "submit_by" TEXT,
+    "handle_by_team" TEXT,
+    "created_by" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ticket_site_pkey" PRIMARY KEY ("mt_site_id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ticket_site_detail" (
+    "maintenance_site_detail_id" TEXT NOT NULL,
+    "mt_site_id" TEXT,
+    "site_id" TEXT NOT NULL,
+    "solved_picture" TEXT,
+    "technician_report" TEXT,
+    "solved_at" TIMESTAMP(3),
+    "solved_by" TEXT,
+    "status" TEXT DEFAULT 'open',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ticket_site_detail_pkey" PRIMARY KEY ("maintenance_site_detail_id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_account" (
+    "id" TEXT NOT NULL,
+    "label" TEXT,
+    "phone_number" TEXT,
+    "is_business" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "whatsapp_account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_session" (
+    "id" TEXT NOT NULL,
+    "account_id" TEXT,
+    "name" TEXT NOT NULL,
+    "status" "public"."wa_session_status" NOT NULL DEFAULT 'CONNECTING',
+    "qr_raw" TEXT,
+    "qr_updated_at" TIMESTAMP(3),
+    "connected_at" TIMESTAMP(3),
+    "disconnected_at" TIMESTAMP(3),
+    "last_conn_update_at" TIMESTAMP(3),
+    "webhook_url" TEXT,
+    "meta" JSONB,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "whatsapp_session_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_creds" (
+    "session_id" TEXT NOT NULL,
+    "data" JSONB NOT NULL,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "whatsapp_creds_pkey" PRIMARY KEY ("session_id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_key" (
+    "id" TEXT NOT NULL,
+    "session_id" TEXT NOT NULL,
+    "type" "public"."wa_key_type" NOT NULL,
+    "key_id" TEXT NOT NULL,
+    "value" JSONB NOT NULL,
+    "scope" TEXT,
+
+    CONSTRAINT "whatsapp_key_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_message_log" (
+    "id" TEXT NOT NULL,
+    "session_id" TEXT NOT NULL,
+    "direction" TEXT NOT NULL,
+    "jid" TEXT NOT NULL,
+    "message_id" TEXT,
+    "message" JSONB NOT NULL,
+    "status" TEXT,
+    "error" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "whatsapp_message_log_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_username_key" ON "public"."users"("username");
 
@@ -332,12 +469,6 @@ CREATE UNIQUE INDEX "roles_name_key" ON "public"."roles"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "scopes_name_key" ON "public"."scopes"("name");
-
--- CreateIndex
-CREATE INDEX "user_roles_userId_idx" ON "public"."user_roles"("userId");
-
--- CreateIndex
-CREATE INDEX "user_roles_roleId_idx" ON "public"."user_roles"("roleId");
 
 -- CreateIndex
 CREATE INDEX "role_scopes_roleId_idx" ON "public"."role_scopes"("roleId");
@@ -374,6 +505,9 @@ CREATE INDEX "subscriptions_installation_by_team_id_idx" ON "public"."subscripti
 
 -- CreateIndex
 CREATE INDEX "subscriptions_installation_by_user_id_idx" ON "public"."subscriptions"("installation_by_user_id");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_created_by_idx" ON "public"."subscriptions"("created_by");
 
 -- CreateIndex
 CREATE INDEX "subscriptions_customer_id_idx" ON "public"."subscriptions"("customer_id");
@@ -441,11 +575,62 @@ CREATE INDEX "technitian_team_member_team_id_idx" ON "public"."technitian_team_m
 -- CreateIndex
 CREATE INDEX "technitian_team_member_user_id_idx" ON "public"."technitian_team_member"("user_id");
 
--- AddForeignKey
-ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- CreateIndex
+CREATE INDEX "ticket_subscription_subscription_id_idx" ON "public"."ticket_subscription"("subscription_id");
+
+-- CreateIndex
+CREATE INDEX "ticket_subscription_customer_id_idx" ON "public"."ticket_subscription"("customer_id");
+
+-- CreateIndex
+CREATE INDEX "ticket_subscription_created_by_idx" ON "public"."ticket_subscription"("created_by");
+
+-- CreateIndex
+CREATE INDEX "ticket_subscription_submit_by_idx" ON "public"."ticket_subscription"("submit_by");
+
+-- CreateIndex
+CREATE INDEX "ticket_subscription_handle_by_team_idx" ON "public"."ticket_subscription"("handle_by_team");
+
+-- CreateIndex
+CREATE INDEX "ticket_site_mt_site_id_idx" ON "public"."ticket_site"("mt_site_id");
+
+-- CreateIndex
+CREATE INDEX "ticket_site_created_by_idx" ON "public"."ticket_site"("created_by");
+
+-- CreateIndex
+CREATE INDEX "ticket_site_detail_mt_site_id_idx" ON "public"."ticket_site_detail"("mt_site_id");
+
+-- CreateIndex
+CREATE INDEX "ticket_site_detail_site_id_idx" ON "public"."ticket_site_detail"("site_id");
+
+-- CreateIndex
+CREATE INDEX "ticket_site_detail_solved_by_idx" ON "public"."ticket_site_detail"("solved_by");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "whatsapp_account_phone_number_key" ON "public"."whatsapp_account"("phone_number");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "whatsapp_session_name_key" ON "public"."whatsapp_session"("name");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_key_session_id_type_idx" ON "public"."whatsapp_key"("session_id", "type");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_key_key_id_idx" ON "public"."whatsapp_key"("key_id");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_key_scope_idx" ON "public"."whatsapp_key"("scope");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "whatsapp_key_session_id_type_key_id_scope_key" ON "public"."whatsapp_key"("session_id", "type", "key_id", "scope");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_message_log_session_id_created_at_idx" ON "public"."whatsapp_message_log"("session_id", "created_at");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_message_log_jid_idx" ON "public"."whatsapp_message_log"("jid");
 
 -- AddForeignKey
-ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."users" ADD CONSTRAINT "users_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."roles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."role_scopes" ADD CONSTRAINT "role_scopes_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -469,19 +654,22 @@ ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_customer_id_f
 ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_odc_id_fkey" FOREIGN KEY ("odc_id") REFERENCES "public"."odc"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_odc_id_fkey" FOREIGN KEY ("odc_id") REFERENCES "public"."odc"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_odp_id_fkey" FOREIGN KEY ("odp_id") REFERENCES "public"."odp"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_odp_id_fkey" FOREIGN KEY ("odp_id") REFERENCES "public"."odp"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_installation_by_team_id_fkey" FOREIGN KEY ("installation_by_team_id") REFERENCES "public"."technitian_team"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_installation_by_user_id_fkey" FOREIGN KEY ("installation_by_user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."subscriptions" ADD CONSTRAINT "subscriptions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."onus" ADD CONSTRAINT "onus_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -518,3 +706,39 @@ ALTER TABLE "public"."technitian_team_member" ADD CONSTRAINT "technitian_team_me
 
 -- AddForeignKey
 ALTER TABLE "public"."technitian_team_member" ADD CONSTRAINT "technitian_team_member_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_subscription" ADD CONSTRAINT "ticket_subscription_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "public"."subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_subscription" ADD CONSTRAINT "ticket_subscription_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_subscription" ADD CONSTRAINT "ticket_subscription_submit_by_fkey" FOREIGN KEY ("submit_by") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_subscription" ADD CONSTRAINT "ticket_subscription_work_by_fkey" FOREIGN KEY ("work_by") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_site" ADD CONSTRAINT "ticket_site_submit_by_fkey" FOREIGN KEY ("submit_by") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_site" ADD CONSTRAINT "ticket_site_handle_by_team_fkey" FOREIGN KEY ("handle_by_team") REFERENCES "public"."technitian_team"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_site_detail" ADD CONSTRAINT "ticket_site_detail_mt_site_id_fkey" FOREIGN KEY ("mt_site_id") REFERENCES "public"."ticket_site"("mt_site_id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ticket_site_detail" ADD CONSTRAINT "ticket_site_detail_solved_by_fkey" FOREIGN KEY ("solved_by") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."whatsapp_session" ADD CONSTRAINT "whatsapp_session_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "public"."whatsapp_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."whatsapp_creds" ADD CONSTRAINT "whatsapp_creds_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."whatsapp_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."whatsapp_key" ADD CONSTRAINT "whatsapp_key_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."whatsapp_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."whatsapp_message_log" ADD CONSTRAINT "whatsapp_message_log_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."whatsapp_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
