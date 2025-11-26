@@ -142,6 +142,10 @@ socketIo.on('connection', (socket) => {
     socket.on('coverage-notif', (data) => {
         socketIo.emit('coverage-notif', data);
     });
+
+    socket.on('create-onu', (data) => {
+        socketIo.emit('create-onu', data);
+    });
 });
 
 app.use((err, req, res, next) => {
@@ -153,5 +157,5 @@ app.use((err, req, res, next) => {
 
 server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
-    await restoreAllSessions();
+    // await restoreAllSessions();
 });

@@ -3,7 +3,9 @@ import { compressAndUploadImageToR2 } from "../helpers/compressAndUploadImageToR
 import { uploadR2Queue } from "./queues/uploadR2.js";
 import { sendInvoiceQueue } from "./queues/sendInvoice.js";
 import { sendWhatsappQueue } from "./queues/sendWhatsapp.js";
-
+import { runCommandQueue } from "./queues/runCommand.js";
+import { runCommands } from "../helpers/shellCommand.js";
+import axios from "axios";
 
 // Registrasi worker untuk uploadR2Queue
 registerWorker(uploadR2Queue, async (job) => {
@@ -44,4 +46,19 @@ registerWorker(sendWhatsappQueue, async (job) => {
         throw error; // Lem
     }
     return true;
+});
+
+registerWorker(runCommandQueue, async (job) => {
+    const { commands, host, username, password, cipher, debug } = job.data;
+    try {
+        const result = await runCommands(commands, host, username, password, cipher, debug);
+        await axios.post('http://localhost:3000/socketxyz/internal/emit', {
+            event: 'create-onu',
+            data: { jobId: job.id, message: "Notif create success" }
+        });
+        return result;
+    } catch (error) {
+        console.error(`[runCommandQueue] Job ${job.id} gagal:`, error);
+        throw error; // Lempar error agar Bull menandai job sebagai gagal
+    }
 });

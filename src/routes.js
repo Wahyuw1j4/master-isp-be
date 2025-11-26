@@ -80,6 +80,7 @@ router.get('/subscriptions/:id', requireSession, requireScope(['subscription.rea
 router.post('/subscriptions', requireSession, requireScope(['subscription.create']), SubscriptionController.create)
 router.put('/subscriptions/:id/update-proceed', requireSession, requireScope(['subscription.update']), SubscriptionController.updateProceed)
 router.delete('/subscriptions/:id', requireSession, requireScope(['subscription.delete']), SubscriptionController.delete)
+router.post('/subscriptions/create-onu', requireSession, requireScope(['subscription.create']), SubscriptionController.createOnu)
 
 
 // Services

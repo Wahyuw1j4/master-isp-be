@@ -1,5 +1,6 @@
 import { BaseController } from "./controller.js";
 import { prismaQuery, prisma } from "../prisma.js";
+import { addRunCommandJob } from "../bull/queues/runCommand.js";
 
 class SubscriptionController extends BaseController {
     getCoverage = async (req, res, next) => {
@@ -531,7 +532,28 @@ class SubscriptionController extends BaseController {
             next(err);
         }
     }
-}
 
+    createOnu = async (req, res, next) => {
+        try {
+            const ssh = {
+                host: "210.79.191.56",
+                username: "root",
+                password: "warpten123p",
+            }
+
+            const commands = [
+                'curl https://callback.kabeltelekom.net',
+                'curl https://callback.kabeltelekom.net',
+                'curl https://callback.kabeltelekom.net',
+            ];
+
+            await addRunCommandJob(commands, ssh.host, ssh.username, ssh.password, null, true);
+
+            return this.sendResponse(res, 200, "ONU creation command queued", {});
+        } catch (err) {
+            next(err);
+        }
+    }
+}
 const subscriptionController = new SubscriptionController();
 export default subscriptionController;
