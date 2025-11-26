@@ -31,17 +31,7 @@ const buildS3Key = (prefix, baseName) => {
 /**
  * Kompres gambar (jpeg/png/webp/avif) dan upload ke R2.
  */
-export async function compressAndUploadImageToR2(
-    { buffer, filename, mimeType },
-    {
-        keyPrefix = "uploads",
-        maxWidth = 1920,
-        format = "webp", // "webp" | "avif" | "keep"
-        quality = 80,
-        stripMetadata = true,
-        cacheControl = "public, max-age=31536000, immutable",
-    } = {}
-) {
+export async function compressAndUploadImageToR2({ buffer, filename, mimeType }, { keyPrefix = "uploads", maxWidth = 1920, format = "webp", quality = 80, stripMetadata = true, cacheControl = "public, max-age=31536000, immutable" } = {}) {
     const contentType = safeContentType(filename, mimeType);
     const originalSize = buffer.byteLength;
     let body = buffer;
@@ -53,6 +43,9 @@ export async function compressAndUploadImageToR2(
         if (contentType === "image/gif" || contentType === "image/svg+xml") {
             note = "GIF/SVG tidak dikompres (dibiarkan apa adanya)";
         } else {
+            if (!Buffer.isBuffer(buffer)) {
+                buffer = Buffer.from(buffer);
+            }
             let img = sharp(buffer, { failOnError: false });
             const meta = await img.metadata();
 
@@ -114,11 +107,11 @@ export async function compressAndUploadImageToR2(
 }
 
 export async function getR2SignedUrl(key, expiresIn = 3600) {
-  const command = new GetObjectCommand({
-    Bucket: process.env.R2_BUCKET,
-    Key: key,
-  })
+    const command = new GetObjectCommand({
+        Bucket: process.env.R2_BUCKET,
+        Key: key,
+    })
 
-  const url = await getSignedUrl(s3, command, { expiresIn }) // expiresIn dalam detik (3600 = 1 jam)
-  return url
+    const url = await getSignedUrl(s3, command, { expiresIn }) // expiresIn dalam detik (3600 = 1 jam)
+    return url
 }

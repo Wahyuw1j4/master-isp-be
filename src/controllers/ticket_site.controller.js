@@ -1,7 +1,8 @@
 import { prisma, prismaQuery, prismaTx } from '../prisma.js';
 import { BaseController } from './controller.js';
 import siteController from './site.controller.js';
-import { compressAndUploadImageToR2, getR2SignedUrl } from '../helpers/compressAndUploadImageToR2.js';
+import { getR2SignedUrl } from '../helpers/compressAndUploadImageToR2.js';
+import { addUploadR2Job } from '../bull/queues/uploadR2.js';
 
 class TicketSiteController extends BaseController {
   constructor() {
@@ -189,10 +190,16 @@ class TicketSiteController extends BaseController {
         data.problem_picture = fileName;
         if (req.file && req.file.buffer) {
           afterCommit(async () => {
-            await compressAndUploadImageToR2(
-              { buffer: req.file.buffer, filename: fileName, mimeType: req.file.mimetype },
-              { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
-            );
+            addUploadR2Job({
+              imageBuffer: req.file.buffer,
+              filename: fileName,
+              mimeType: req.file.mimetype,
+              options: { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
+            });
+            // await compressAndUploadImageToR2(
+            //   { buffer: req.file.buffer, filename: fileName, mimeType: req.file.mimetype },
+            //   { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
+            // );
           });
         }
 
