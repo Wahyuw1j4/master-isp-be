@@ -4,13 +4,15 @@ import makeWASocket, {
   useMultiFileAuthState,
 } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { prisma, prismaQuery } from '../prisma.js';
 import { ensureSessionRow } from './waPrismaAuth.js';
 
 const SESSIONS = new Map(); // name -> { sock, saveCreds }
 
 // Folder base tempat Baileys simpan auth-nya per session
-const AUTH_BASE_PATH = './whatsapp-auth';
+const AUTH_BASE_PATH = path.resolve('./whatsapp-auth');
 
 /** Mulai 1 session (atau reload jika sudah ada) */
 export async function startSession(name) {
@@ -25,7 +27,7 @@ export async function startSession(name) {
 
   // Pakai auth berbasis file, 1 folder per session
   const { state, saveCreds } = await useMultiFileAuthState(
-    `${AUTH_BASE_PATH}/${name}`
+    path.join(AUTH_BASE_PATH, name),
   );
 
   const sock = makeWASocket({
@@ -38,7 +40,7 @@ export async function startSession(name) {
   // Simpan perubahan creds ke file
   sock.ev.on('creds.update', saveCreds);
 
-  // Event connection (QR, status, reconnect)
+  // Event connection (QR, status, reconnect + cleanup)
   sock.ev.on('connection.update', async (u) => {
     const { connection, lastDisconnect, qr } = u;
 
@@ -53,12 +55,44 @@ export async function startSession(name) {
             last_conn_update_at: new Date(),
             status: 'CONNECTING',
           },
-        })
+        }),
       );
       console.log(`[${name}] QR diperbarui`);
     }
 
+    // Koneksi berhasil OPEN
     if (connection === 'open') {
+      // Info akun dari Baileys
+      const me = sock.user || u.me || state?.creds?.me || null;
+
+      let accountId = null;
+
+      if (me?.id) {
+        // contoh me.id: "6281225404589:75@s.whatsapp.net"
+        const bare = me.id.split('@')[0]; // "6281225404589:75"
+        const phone = bare.split(':')[0]; // "6281225404589"
+
+        const label = me.name || me.pushName || name;
+        const isBusiness = !!me.isBusiness;
+
+        const account = await prismaQuery(() =>
+          prisma.whatsapp_account.upsert({
+            where: { phone_number: phone },
+            create: {
+              phone_number: phone,
+              label,
+              is_business: isBusiness,
+            },
+            update: {
+              label,
+              is_business: isBusiness,
+            },
+          }),
+        );
+
+        accountId = account.id;
+      }
+
       await prismaQuery(() =>
         prisma.whatsapp_session.update({
           where: { id: sessionRow.id },
@@ -67,12 +101,19 @@ export async function startSession(name) {
             qr_raw: null,
             connected_at: new Date(),
             last_conn_update_at: new Date(),
+            account_id: accountId,
           },
-        })
+        }),
       );
-      console.log(`[${name}] ✅ Connected`);
+
+      console.log(
+        `[${name}] ✅ Connected${
+          accountId ? ` (account_id=${accountId}, phone=${me?.id})` : ''
+        }`,
+      );
     }
 
+    // Koneksi CLOSE (apapun sebabnya)
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
       const loggedOut = code === DisconnectReason.loggedOut;
@@ -86,21 +127,59 @@ export async function startSession(name) {
             disconnected_at: new Date(),
             last_conn_update_at: new Date(),
           },
-        })
+        }),
       );
 
       console.log(
-        `[${name}] ❌ Closed (code: ${code}, restartRequired: ${restartRequired}, loggedOut: ${loggedOut})`
+        `[${name}] ❌ Closed (code: ${code}, restartRequired: ${restartRequired}, loggedOut: ${loggedOut})`,
       );
 
-      // Hapus dari map socket dulu
+      // Kalau benar-benar logged out dari HP:
+      // - putus relasi ke whatsapp_account
+      // - hapus row whatsapp_account
+      // - hapus folder auth di filesystem
+      if (loggedOut) {
+        try {
+          const sess = await prismaQuery(() =>
+            prisma.whatsapp_session.findUnique({
+              where: { id: sessionRow.id },
+              select: { account_id: true },
+            }),
+          );
+
+          if (sess?.account_id) {
+            await prismaQuery(() =>
+              prisma.$transaction([
+                prisma.whatsapp_session.update({
+                  where: { id: sessionRow.id },
+                  data: { account_id: null },
+                }),
+                prisma.whatsapp_account.delete({
+                  where: { id: sess.account_id },
+                }),
+              ]),
+            );
+            console.log(
+              `[${name}] 🔐 whatsapp_account dihapus (account_id=${sess.account_id})`,
+            );
+          }
+
+          const dir = path.join(AUTH_BASE_PATH, name);
+          await fs.rm(dir, { recursive: true, force: true });
+          console.log(`[${name}] 🧹 folder auth dihapus: ${dir}`);
+        } catch (e) {
+          console.error(`[${name}] error saat cleanup logout`, e);
+        }
+      }
+
+      // Hapus dari map socket
       SESSIONS.delete(name);
 
-      // Auto-reconnect kalau bukan logged out
+      // Auto-reconnect hanya kalau BUKAN loggedOut
       if (!loggedOut) {
         setTimeout(() => {
           startSession(name).catch((e) =>
-            console.error(`[${name}] auto-restart error`, e)
+            console.error(`[${name}] auto-restart error`, e),
           );
         }, 1000);
       }
@@ -110,7 +189,6 @@ export async function startSession(name) {
   // (opsional) log pesan masuk ke DB
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     for (const m of messages) {
-      console.log(`[${name}] Message received:`, m);
       try {
         await prisma.whatsapp_message_log.create({
           data: {
@@ -122,7 +200,7 @@ export async function startSession(name) {
             status: type,
           },
         });
-      } catch (e) {
+      } catch {
         // jangan ganggu alur utama kalau logging gagal
       }
     }
@@ -139,11 +217,11 @@ export function getSession(name) {
 
 export async function stopSession(
   name,
-  { logout = true, deleteDb = false } = {}
+  { logout = true, deleteDb = false } = {},
 ) {
   const entry = SESSIONS.get(name);
   const row = await prismaQuery(() =>
-    prisma.whatsapp_session.findUnique({ where: { name } })
+    prisma.whatsapp_session.findUnique({ where: { name } }),
   );
 
   if (entry) {
@@ -157,15 +235,18 @@ export async function stopSession(
   }
 
   if (row && deleteDb) {
-    // kalau kamu punya tabel creds/keys, bisa dihapus juga di sini kalau mau bersih
     await prismaQuery(() =>
       prisma.whatsapp_message_log.deleteMany({
         where: { session_id: row.id },
-      })
+      }),
     );
     await prismaQuery(() =>
-      prisma.whatsapp_session.delete({ where: { id: row.id } })
+      prisma.whatsapp_session.delete({ where: { id: row.id } }),
     );
+
+    // opsional: hapus folder auth juga kalau deleteDb
+    const dir = path.join(AUTH_BASE_PATH, name);
+    await fs.rm(dir, { recursive: true, force: true });
   }
 }
 
@@ -195,7 +276,7 @@ export async function sendText(name, number, message) {
         },
       });
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 
@@ -204,14 +285,27 @@ export async function sendText(name, number, message) {
 
 export async function getStatus(name) {
   const row = await prismaQuery(() =>
-    prisma.whatsapp_session.findUnique({ where: { name } })
+    prisma.whatsapp_session.findUnique({
+      where: { name },
+      include: {
+        account: {
+          select: {
+            id: true,
+            label: true,
+            phone_number: true,
+            is_business: true,
+          },
+        },
+      },
+    }),
   );
   if (!row) throw new Error('Session not found');
   return {
-    name,
+    name: row.name,
     status: row.status,
     connected_at: row.connected_at,
     disconnected_at: row.disconnected_at,
+    account: row.account || null,
   };
 }
 
@@ -221,25 +315,49 @@ export async function getQR(name) {
   );
   if (!row) throw new Error('Session not found');
 
-  if (row.status === 'OPEN') return { message: 'Sudah terhubung' };
-  if (!row.qr_raw)
-    return { message: 'QR belum tersedia (tunggu atau restart sesi)' };
+  // Kalau sudah OPEN, ya nggak butuh QR lagi
+  if (row.status === 'OPEN') {
+    return { message: 'Sudah terhubung' };
+  }
+
+  // Kalau belum ada socket jalan, dan status memungkinkan, nyalakan sesi
+  if (
+    !SESSIONS.has(name) &&
+    (row.status === 'LOGGED_OUT' ||
+      row.status === 'CLOSED' ||
+      row.status === 'CONNECTING')
+  ) {
+    // fire-and-forget, biar tidak blocking response
+    startSession(name).catch((e) =>
+      console.error(`[${name}] error startSession dari getQR`, e)
+    );
+  }
+
+  // Kalau QR belum sempat ke-generate, suruh client retry
+  if (!row.qr_raw) {
+    return { message: 'QR belum tersedia, silakan coba lagi dalam 1-2 detik' };
+  }
 
   const dataUrl = await QRCode.toDataURL(row.qr_raw);
   return { name, qr: dataUrl, updated_at: row.qr_updated_at };
 }
 
+
 export async function listSessions() {
   const rows = await prismaQuery(() =>
     prisma.whatsapp_session.findMany({
-      select: {
-        name: true,
-        status: true,
-        connected_at: true,
-        disconnected_at: true,
-        updated_at: true,
+      include: {
+        account: {
+          select: {
+            id: true,
+            label: true,
+            phone_number: true,
+            is_business: true,
+          },
+        },
       },
-    })
+      orderBy: { updated_at: 'desc' },
+    }),
   );
   return rows;
 }
@@ -253,7 +371,7 @@ export async function restoreAllSessions() {
         // status: { not: 'LOGGED_OUT' }
       },
       select: { name: true },
-    })
+    }),
   );
 
   for (const r of rows) {

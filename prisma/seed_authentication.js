@@ -2,7 +2,7 @@ import { prisma } from '../src/prisma/prisma.js';
 import bcrypt from 'bcryptjs';
 
 // Resources and CRUD actions to generate permissions (scopes)
-const RESOURCES = ['user','customer', 'invoice', 'service', 'fiber_route', 'manager_technitian', 'maintenance', 'technitian', 'subscription', 'site', 'role', 'scope', 'session'];
+const RESOURCES = ['user','customer', 'invoice', 'service', 'fiber_route', 'manager_technitian', 'maintenance', 'technitian', 'subscription', 'site', 'role', 'scope', 'session', 'whatsapp'];
 const CRUD = ['create', 'read', 'update', 'delete'];
 
 // NOTE: project convention uses dot-notation for scopes (e.g. "subscription.read").

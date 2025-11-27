@@ -561,21 +561,21 @@ enum wa_key_type {
 }
 
 model whatsapp_account {
-  id           String            @id @default(cuid())
+  id           String             @id @default(cuid())
   label        String?
-  phone_number String?           @unique
-  is_business  Boolean           @default(false)
+  phone_number String?            @unique
+  is_business  Boolean            @default(false)
   sessions     whatsapp_session[]
-  created_at   DateTime          @default(now())
-  updated_at   DateTime          @updatedAt
+  created_at   DateTime           @default(now())
+  updated_at   DateTime           @updatedAt
 }
 
 model whatsapp_session {
-  id                  String           @id @default(cuid())
+  id                  String                 @id @default(cuid())
   account_id          String?
-  account             whatsapp_account? @relation(fields: [account_id], references: [id])
-  name                String           @unique
-  status              wa_session_status  @default(CONNECTING)
+  account             whatsapp_account?      @relation(fields: [account_id], references: [id])
+  name                String                 @unique
+  status              wa_session_status      @default(CONNECTING)
   qr_raw              String?
   qr_updated_at       DateTime?
   connected_at        DateTime?
@@ -586,12 +586,12 @@ model whatsapp_session {
   creds               whatsapp_creds?
   keys                whatsapp_key[]
   logs                whatsapp_message_log[]
-  created_at          DateTime         @default(now())
-  updated_at          DateTime         @updatedAt
+  created_at          DateTime               @default(now())
+  updated_at          DateTime               @updatedAt
 }
 
 model whatsapp_creds {
-  session_id String          @id
+  session_id String           @id
   session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
   data       Json
   version    Int              @default(1)

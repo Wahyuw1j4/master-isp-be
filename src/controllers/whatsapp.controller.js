@@ -114,4 +114,6 @@ class WhatsAppController extends BaseController {
     };
 }
 
-export default new WhatsAppController();
+const whatsappController = new WhatsAppController();
+
+export default whatsappController;

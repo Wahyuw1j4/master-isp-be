@@ -157,5 +157,5 @@ app.use((err, req, res, next) => {
 
 server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
-    // await restoreAllSessions();
+    await restoreAllSessions();
 });
