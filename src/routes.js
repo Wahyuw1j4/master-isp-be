@@ -184,6 +184,14 @@ router.get('/whatsapp/sessions/:name/qr', requireSession, whatsappController.get
 router.post('/whatsapp/sessions/:name/send', requireSession, whatsappController.sendMessage)
 router.post('/whatsapp/sessions/:name/restart', requireSession, whatsappController.restartSession)
 router.delete('/whatsapp/sessions/:name', requireSession, whatsappController.deleteSession)
+router.get('/whatsapp/messages', requireSession, whatsappController.getMessages)
+
+// WhatsApp Template routes
+router.get('/whatsapp/templates', requireSession, requireScope(['whatsapp.read']), whatsappController.getTemplates);
+router.post('/whatsapp/templates', requireSession, requireScope(['whatsapp.create']), whatsappController.createTemplate);
+router.put('/whatsapp/templates/:code', requireSession, requireScope(['whatsapp.update']), whatsappController.updateTemplate);
+router.get('/whatsapp/templates/:code', requireSession, requireScope(['whatsapp.read']), whatsappController.getTemplateByCode);
+router.post('/whatsapp/sessions/:name/send-template', requireSession, requireScope(['whatsapp.create']), whatsappController.sendTemplateMessage);
 
 // Auth routes
 router.post('/auth/register', AuthController.register)

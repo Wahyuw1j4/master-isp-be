@@ -146,6 +146,10 @@ socketIo.on('connection', (socket) => {
     socket.on('create-onu', (data) => {
         socketIo.emit('create-onu', data);
     });
+
+    socket.on('whatsapp-notif', (data) => {
+        socketIo.emit('whatsapp-notif', data);
+    });
 });
 
 app.use((err, req, res, next) => {

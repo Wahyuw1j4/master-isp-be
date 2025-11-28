@@ -566,6 +566,7 @@ model whatsapp_account {
   phone_number String?            @unique
   is_business  Boolean            @default(false)
   sessions     whatsapp_session[]
+  templates    whatsapp_template[]
   created_at   DateTime           @default(now())
   updated_at   DateTime           @updatedAt
 }
@@ -614,18 +615,76 @@ model whatsapp_key {
   @@index([scope])
 }
 
+enum WhatsappDirection {
+  IN
+  OUT
+}
+
+enum WhatsappMessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  STICKER
+  CONTACT
+  LOCATION
+  BUTTON
+  OTHER
+}
+
 model whatsapp_message_log {
   id         String           @id @default(cuid())
   session_id String
   session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  direction  String // "IN" | "OUT"
-  jid        String
-  message_id String?
-  message    Json
-  status     String?
-  error      String?
-  created_at DateTime         @default(now())
-
+  direction WhatsappDirection // IN | OUT
+  jid String 
+  from_jid String
+  to_jid   String
+  from_number String?
+  to_number   String?
+  message_id   String?
+  message      Json 
+  message_type WhatsappMessageType 
+  status String? 
+  error  String?
+  created_at DateTime @default(now())
   @@index([session_id, created_at])
   @@index([jid])
+  @@index([from_number])
+  @@index([to_number])
 }
+
+model whatsapp_template_variable {
+  id          String             @id @default(cuid())
+  template_id String
+  template    whatsapp_template  @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  key         String
+  label       String?
+  description String?
+  required    Boolean            @default(true)
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+
+  @@unique([template_id, key])
+  @@index([template_id])
+}
+
+model whatsapp_template {
+  id           String               @id @default(cuid())
+  code         String               @unique
+  label        String
+  body         String
+  message_type WhatsappMessageType  @default(TEXT)
+  account_id   String?
+  account      whatsapp_account?    @relation(fields: [account_id], references: [id], onDelete: SetNull)
+  example_vars Json?
+  is_active    Boolean              @default(true)
+  variables    whatsapp_template_variable[]
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @updatedAt
+
+  @@index([account_id])
+  @@index([code])
+}
+
