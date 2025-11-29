@@ -166,10 +166,10 @@ router.put('/ticket-sites/:id', requireSession, requireScope(['maintenance.updat
 router.delete('/ticket-sites/:id', requireSession, requireScope(['maintenance.delete']), ticketSiteController.delete)
 
 
-router.get('/fiber-routes', requireSession, requireScope(['admin.read']), fiberRouteController.getAll)
-router.post('/fiber-routes', requireSession, requireScope(['admin.create']), fiberRouteController.create)
-router.put('/fiber-routes/:id', requireSession, requireScope(['admin.update']), fiberRouteController.update)
-router.delete('/fiber-routes/:id', requireSession, requireScope(['admin.delete']), fiberRouteController.delete)
+router.get('/fiber-routes', requireSession, requireScope(['subscription.read']), fiberRouteController.getAll)
+router.post('/fiber-routes', requireSession, requireScope(['subscription.create']), fiberRouteController.create)
+router.put('/fiber-routes/:id', requireSession, requireScope(['subscription.update']), fiberRouteController.update)
+router.delete('/fiber-routes/:id', requireSession, requireScope(['subscription.delete']), fiberRouteController.delete)
 
 router.get('/bps/provinces', requireSession, requireScope(['subscription.read']), bpsController.getProvinsi)
 router.get('/bps/regencies', requireSession, requireScope(['subscription.read']), bpsController.getKota)
