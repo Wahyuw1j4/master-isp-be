@@ -27,8 +27,11 @@ const socketAuth = (socket, next) => {
 
 const setupSocket = (socketServer) => {
     try {
-        const io = new Server(socketServer, {
-            cors: { origin: "*", credentials: true },
+        const io = new Server(httpServer, {
+            cors: {
+                origin: ['https://demoisp.wahyuwijaya.biz.id'],
+                credentials: true,
+            },
         });
         io.use(socketAuth);
         return io;
