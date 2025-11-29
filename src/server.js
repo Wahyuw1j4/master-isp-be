@@ -101,7 +101,9 @@ app.use(cors({
     credentials: true
 }));
 
-app.options("*", cors());
+// FIX untuk Express v5 – preflight handler
+app.options("/{*path}", cors());
+
 
 
 app.use((req, res, next) => {
