@@ -29,7 +29,7 @@ const setupSocket = (socketServer) => {
     try {
         const io = new Server(socketServer, {
             cors: {
-                origin: ['https://demoisp.wahyuwijaya.biz.id'],
+                origin: ['https://demoisp.wahyuwijaya.biz.id', 'http://localhost:5173'],
                 credentials: true,
             },
         });
