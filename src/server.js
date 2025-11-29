@@ -85,16 +85,24 @@ const randomNotify = async (socketIo) => {
 
 
 // use origin-only referrer for cross-origin requests.
-const allowedOrigins = ['http://localhost:5173', "https://demoisp.wahyuwijaya.biz.id"];
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://demoisp.wahyuwijaya.biz.id",
+];
+
 app.use(cors({
-    origin: function (origin, callback) {
-        // allow requests with no origin (like mobile apps or curl)
+    origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
-        return callback(new Error('CORS policy: This origin is not allowed'));
+        if (allowedOrigins.some(o => origin.startsWith(o))) {
+            return callback(null, true);
+        }
+        return callback(new Error("CORS policy: Not allowed"));
     },
     credentials: true
 }));
+
+app.options("*", cors());
+
 
 app.use((req, res, next) => {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
