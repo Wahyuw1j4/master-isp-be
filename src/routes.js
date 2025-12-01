@@ -98,6 +98,8 @@ router.get('/invoices/:id', requireSession, requireScope(['invoice.read']), Invo
 router.post('/invoices', requireSession, requireScope(['invoice.create']), InvoiceController.create)
 router.put('/invoices/:id', requireSession, requireScope(['invoice.update']), InvoiceController.update)
 router.delete('/invoices/:id', requireSession, requireScope(['invoice.delete']), InvoiceController.delete)
+router.get('/invoices/public/:id', InvoiceController.getPublicById)
+router.get('/invoices/public/:id/download', InvoiceController.downloadPublicInvoice)
 
 // Invoice details
 router.get('/invoice-details', requireSession, requireScope(['invoice_detail.read']), InvoiceDetailController.getAll)
@@ -187,11 +189,11 @@ router.delete('/whatsapp/sessions/:name', requireSession, whatsappController.del
 router.get('/whatsapp/messages', requireSession, whatsappController.getMessages)
 
 // WhatsApp Template routes
-router.get('/whatsapp/templates', requireSession, requireScope(['whatsapp.read']), whatsappController.getTemplates);
-router.post('/whatsapp/templates', requireSession, requireScope(['whatsapp.create']), whatsappController.createTemplate);
-router.put('/whatsapp/templates/:code', requireSession, requireScope(['whatsapp.update']), whatsappController.updateTemplate);
-router.get('/whatsapp/templates/:code', requireSession, requireScope(['whatsapp.read']), whatsappController.getTemplateByCode);
-router.post('/whatsapp/sessions/:name/send-template', requireSession, requireScope(['whatsapp.create']), whatsappController.sendTemplateMessage);
+router.get('/whatsapp/templates', requireSession, whatsappController.getTemplates);
+router.post('/whatsapp/templates', requireSession, whatsappController.createTemplate);
+router.put('/whatsapp/templates/:code', requireSession, whatsappController.updateTemplate);
+router.get('/whatsapp/templates/:code', requireSession, whatsappController.getTemplateByCode);
+router.post('/whatsapp/sessions/:name/send-template', requireSession, whatsappController.sendTemplateMessage);
 
 // Auth routes
 router.post('/auth/register', AuthController.register)
