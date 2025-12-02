@@ -1,6 +1,7 @@
 import { BaseController } from "./controller.js";
 import { prismaQuery, prisma } from "../prisma.js";
-import { addRunCommandJob } from "../bull/queues/runCommand.js";
+import { createOnuService, deleteOnuService } from "../helpers/c320Command.js";
+import { hitMikrotikJob } from "../bull/queues/hitMikrotik.js";
 
 class SubscriptionController extends BaseController {
     getCoverage = async (req, res, next) => {
@@ -303,7 +304,7 @@ class SubscriptionController extends BaseController {
                 }
             }));
 
-            return this.sendResponse(res, 200, 'Coordinates retrieved',  coords );
+            return this.sendResponse(res, 200, 'Coordinates retrieved', coords);
         } catch (err) {
             next(err);
         }
@@ -329,7 +330,7 @@ class SubscriptionController extends BaseController {
                 }
             }));
 
-            return this.sendResponse(res, 200, 'Coordinates retrieved', coords );
+            return this.sendResponse(res, 200, 'Coordinates retrieved', coords);
         } catch (err) {
             next(err);
         }
@@ -355,7 +356,7 @@ class SubscriptionController extends BaseController {
                 }
             }));
 
-            return this.sendResponse(res, 200, 'Coordinates retrieved', coords );
+            return this.sendResponse(res, 200, 'Coordinates retrieved', coords);
         } catch (err) {
             next(err);
         }
@@ -437,8 +438,8 @@ class SubscriptionController extends BaseController {
                 where: { id: req.params.id },
                 include: {
                     odc: true,
-                    olt: true, 
-                    odp: true, 
+                    olt: true,
+                    odp: true,
                     customer: true,
                     service: true,
                     created_by_user: true,
@@ -505,10 +506,10 @@ class SubscriptionController extends BaseController {
 
     updateProceed = async (req, res, next) => {
         try {
-            const {olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password} = req.body;
+            const { olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password } = req.body;
             const subscription = await prisma.subscriptions.update({
                 where: { id: req.params.id },
-                data: { 
+                data: {
                     status: 'PROCEED',
                     olt: { connect: { id: olt_id } },
                     odc: { connect: { id: odc_id } },
@@ -533,23 +534,107 @@ class SubscriptionController extends BaseController {
         }
     }
 
+
+
     createOnu = async (req, res, next) => {
         try {
             const ssh = {
-                host: "210.79.191.56",
-                username: "root",
-                password: "warpten123p",
-            }
+                host: "103.153.149.228",
+                username: "jarvis",
+                password: "jarvis110315@",
+            };
 
-            const commands = [
-                'curl https://callback.kabeltelekom.net',
-                'curl https://callback.kabeltelekom.net',
-                'curl https://callback.kabeltelekom.net',
-            ];
+            const subscription = await prisma.subscriptions.findUnique({
+                where: { id: req.body.subscription_id },
+                include: { customer: true, service: true }
+            });
 
-            await addRunCommandJob(commands, ssh.host, ssh.username, ssh.password, null, true);
+            await createOnuService(subscription, ssh); // then create ONU with delay
 
             return this.sendResponse(res, 200, "ONU creation command queued", {});
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    deleteOnu = async (req, res, next) => {
+        try {
+            const ssh = {
+                host: "103.153.149.228",
+                username: "jarvis",
+                password: "jarvis110315@",
+            };
+            const subscription = await prisma.subscriptions.findUnique({
+                where: { id: req.body.subscription_id },
+                include: { customer: true, service: true }
+            });
+            await deleteOnuService(subscription, ssh, 0); // delete immediately
+
+            return this.sendResponse(res, 200, "ONU reinstallation commands queued", {});
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    reinstallOnu = async (req, res, next) => {
+        try {
+            const ssh = {
+                host: "103.153.149.228",
+                username: "jarvis",
+                password: "jarvis110315@",
+            };
+            const subscription = await prisma.subscriptions.findUnique({
+                where: { id: req.body.subscription_id },
+                include: { customer: true, service: true }
+            });
+            await deleteOnuService(subscription, ssh, 0); // delete immediately
+            await createOnuService(subscription, ssh, 15000); // then create ONU with delay
+            return this.sendResponse(res, 200, "ONU reinstallation commands queued", {});
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    suspendSubscription = async (req, res, next) => {
+        try {
+            const subscription = await prisma.subscriptions.update({
+                where: { id: req.params.id },
+                data: { status: 'SUSPEND' }
+            });
+
+            const address = "172.25.220.8"
+
+            await hitMikrotikJob({
+                url: 'http://103.153.149.228:8080/rest/ip/firewall/address-list/add',
+                method: 'POST',
+                data: {
+                    address,
+                    list: 'blocked_clients',
+                    comment: `suspend from api by wahyu wijaya subscription:${subscription.id}`
+                }
+            });
+            return this.sendResponse(res, 200, "Subscription suspended", subscription);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    unsuspendSubscription = async (req, res, next) => {
+        try {
+            const subscription = await prisma.subscriptions.update({
+                where: { id: req.params.id },
+                data: { status: 'ACTIVE' }
+            });
+            const address = "172.25.220.8"
+            await hitMikrotikJob({
+                url: 'http://103.153.149.228:8080/rest/ip/firewall/address-list/address',
+                method: 'DELETE',
+                data: {
+                    address,
+                    list: 'blocked_clients',
+                }
+            });
+            return this.sendResponse(res, 200, "Subscription unsuspended", subscription);
         } catch (err) {
             next(err);
         }

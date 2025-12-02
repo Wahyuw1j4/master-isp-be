@@ -23,6 +23,11 @@ const randomNotify = async (socketIo) => {
 
     const nextInterval = Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000; // 1-5 detik
 
+    if (randomOnus.length === 0) {
+        // schedule next notification
+        setTimeout(() => randomNotify(socketIo), nextInterval);
+        return;
+    }
     const selectSNMPValue = await prismaQuery(() =>
         prisma.snmp_values.findMany({
             where: {
@@ -171,5 +176,5 @@ app.use((err, req, res, next) => {
 
 server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
-    await restoreAllSessions();
+    // await restoreAllSessions();
 });

@@ -60,7 +60,7 @@ router.post('/sessions/me/revoke-all', requireSession, SessionController.revokeA
 router.get('/customers', requireSession, requireScope(['customer.read']), CustomerController.getAll)
 router.get('/customers/search', requireSession, requireScope(['customer.read']), CustomerController.searchCustomers)
 router.get('/customers/:id', requireSession, requireScope(['customer.read']), CustomerController.getById)
-router.post('/customers', requireSession, requireScope(['customer.create']), CustomerController.create)
+router.post('/customers', requireSession, requireScope(['customer.create']), upload.single('ktp_file'), CustomerController.create)
 router.put('/customers/:id', requireSession, requireScope(['customer.update']), CustomerController.update)
 router.delete('/customers/:id', requireSession, requireScope(['customer.delete']), CustomerController.delete)
 
@@ -81,6 +81,10 @@ router.post('/subscriptions', requireSession, requireScope(['subscription.create
 router.put('/subscriptions/:id/update-proceed', requireSession, requireScope(['subscription.update']), SubscriptionController.updateProceed)
 router.delete('/subscriptions/:id', requireSession, requireScope(['subscription.delete']), SubscriptionController.delete)
 router.post('/subscriptions/create-onu', requireSession, requireScope(['subscription.create']), SubscriptionController.createOnu)
+router.post('/subscriptions/delete-onu', requireSession, requireScope(['subscription.delete']), SubscriptionController.deleteOnu)
+router.post('/subscriptions/reinstall-onu', requireSession, requireScope(['subscription.update']), SubscriptionController.reinstallOnu)
+router.post('/subscriptions/:id/suspend', requireSession, requireScope(['subscription.update']), SubscriptionController.suspendSubscription)
+router.post('/subscriptions/:id/unsuspend', requireSession, requireScope(['subscription.update']), SubscriptionController.unsuspendSubscription)
 
 
 // Services

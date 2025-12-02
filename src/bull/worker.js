@@ -5,6 +5,8 @@ import { sendInvoiceQueue } from "./queues/sendInvoice.js";
 import { sendWhatsappQueue } from "./queues/sendWhatsapp.js";
 import { runCommandQueue } from "./queues/runCommand.js";
 import { runCommands } from "../helpers/shellCommand.js";
+import { hitMikrotikQueue } from "./queues/hitMikrotik.js";
+import { hitMikrotik } from "../helpers/HitMikrotik.js";
 import axios from "axios";
 
 // Registrasi worker untuk uploadR2Queue
@@ -30,7 +32,7 @@ registerWorker(sendInvoiceQueue, async (job) => {
 
     try {
         // Panggil fungsi untuk mengirim email
-    }catch (error) {
+    } catch (error) {
         console.error(`[sendInvoiceQueue] Job ${job.id} gagal:`, error);
         throw error; // Lempar error agar Bull menandai job sebagai gagal
     }
@@ -59,6 +61,17 @@ registerWorker(runCommandQueue, async (job) => {
         return result;
     } catch (error) {
         console.error(`[runCommandQueue] Job ${job.id} gagal:`, error);
+        throw error; // Lempar error agar Bull menandai job sebagai gagal
+    }
+});
+
+registerWorker(hitMikrotikQueue, async (job) => {
+    const { url, method, body = null, headers = {} } = job.data;
+    try {
+        const hitMikrotikResult = await hitMikrotik(url, method, body, headers);
+        return hitMikrotikResult;
+    } catch (error) {
+        console.error(`[hitMikrotikQueue] Job ${job.id} gagal:`, error);
         throw error; // Lempar error agar Bull menandai job sebagai gagal
     }
 });
