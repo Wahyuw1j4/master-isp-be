@@ -123,7 +123,7 @@ const server = http.createServer(app);
 
 
 const socketIo = setupSocket(server);
-// randomNotify(socketIo);
+
 
 app.get('/', (req, res) => {
     socketIo.emit('message', 'Hello, client!');
@@ -187,4 +187,5 @@ server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
     // await restoreAllSessions();
     await addGetingUncfgJob();
+    randomNotify(socketIo);
 });

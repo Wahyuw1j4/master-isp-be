@@ -46,15 +46,7 @@ const ROLE_DEFINITIONS = {
 		description: 'Teknisi - Field Technician for Installation & Maintenance',
 		scopes: [
 			// Teknisi focuses on installation, maintenance, and field work
-			'subscription.read', 'subscription.update',
-			'customer.read',
-			'site.read',
-			'fiber_route.read',
-			'maintenance.read', 'maintenance.create', 'maintenance.update',
 			'technitian.read', 'technitian.update',
-			'manager_technitian.read',
-			'service.read',
-			'session.read'
 		]
 	}
 };
@@ -105,9 +97,39 @@ async function main() {
 
 		// Map role -> scopes (createMany with skipDuplicates)
 		const roleScopeRows = scopesToAssign.map(s => ({ roleId: role.id, scopeId: s.id }));
+
+		// Remove stale role_scope entries so the DB matches ROLE_DEFINITIONS.
+		// Strategy: delete any existing mappings for the role that are NOT in the
+		// desired set, then (re)create the desired mappings. This ensures when
+		// scopes are removed from ROLE_DEFINITIONS, they are also removed from DB.
+		if (roleConfig.scopes === 'ALL') {
+			// For ALL, desired ids are all createdScopes
+			const newScopeIds = createdScopes.map(s => s.id);
+			if (newScopeIds.length) {
+				const del = await prisma.role_scopes.deleteMany({
+					where: { roleId: role.id, scopeId: { notIn: newScopeIds } }
+				});
+				if (del && typeof del.count === 'number') console.log(`Removed ${del.count} stale scopes from role ${roleName}`);
+			}
+		} else {
+			const newScopeIds = roleScopeRows.map(r => r.scopeId);
+			if (newScopeIds.length) {
+				const del = await prisma.role_scopes.deleteMany({
+					where: { roleId: role.id, scopeId: { notIn: newScopeIds } }
+				});
+				if (del && typeof del.count === 'number') console.log(`Removed ${del.count} stale scopes from role ${roleName}`);
+			} else {
+				// No scopes defined for this role in ROLE_DEFINITIONS -> remove all
+				const del = await prisma.role_scopes.deleteMany({ where: { roleId: role.id } });
+				if (del && typeof del.count === 'number') console.log(`Removed ${del.count} stale scopes from role ${roleName} (role now has no scopes)`);
+			}
+		}
+
 		if (roleScopeRows.length) {
 			await prisma.role_scopes.createMany({ data: roleScopeRows, skipDuplicates: true });
 			console.log(`Assigned ${roleScopeRows.length} scopes to role ${roleName}`);
+		} else {
+			console.log(`No scopes to assign to role ${roleName}`);
 		}
 	}
 
