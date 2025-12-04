@@ -538,16 +538,15 @@ class SubscriptionController extends BaseController {
 
     createOnu = async (req, res, next) => {
         try {
-            const ssh = {
-                host: "103.153.149.228",
-                username: "jarvis",
-                password: "jarvis110315@",
-            };
-
             const subscription = await prisma.subscriptions.findUnique({
                 where: { id: req.body.subscription_id },
-                include: { customer: true, service: true }
+                include: { olt: true }
             });
+            const ssh = {
+                host: subscription.olt.ip_address,
+                username: subscription.olt.username,
+                password: subscription.olt.password,
+            };
 
             await createOnuService(subscription, ssh); // then create ONU with delay
 
@@ -559,15 +558,15 @@ class SubscriptionController extends BaseController {
 
     deleteOnu = async (req, res, next) => {
         try {
-            const ssh = {
-                host: "103.153.149.228",
-                username: "jarvis",
-                password: "jarvis110315@",
-            };
             const subscription = await prisma.subscriptions.findUnique({
                 where: { id: req.body.subscription_id },
-                include: { customer: true, service: true }
+                include: { olt: true }
             });
+            const ssh = {
+                host: subscription.olt.ip_address,
+                username: subscription.olt.username,
+                password: subscription.olt.password,
+            };
             await deleteOnuService(subscription, ssh, 0); // delete immediately
 
             return this.sendResponse(res, 200, "ONU reinstallation commands queued", {});
@@ -578,15 +577,16 @@ class SubscriptionController extends BaseController {
 
     reinstallOnu = async (req, res, next) => {
         try {
-            const ssh = {
-                host: "103.153.149.228",
-                username: "jarvis",
-                password: "jarvis110315@",
-            };
             const subscription = await prisma.subscriptions.findUnique({
                 where: { id: req.body.subscription_id },
-                include: { customer: true, service: true }
+                include: { olt: true }
             });
+            const ssh = {
+                host: subscription.olt.ip_address,
+                username: subscription.olt.username,
+                password: subscription.olt.password,
+            };
+            console.log('subscription:', subscription);
             await deleteOnuService(subscription, ssh, 0); // delete immediately
             await createOnuService(subscription, ssh, 15000); // then create ONU with delay
             return this.sendResponse(res, 200, "ONU reinstallation commands queued", {});

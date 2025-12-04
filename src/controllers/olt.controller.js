@@ -2,16 +2,41 @@ import { prismaQuery, prisma } from "../prisma.js";
 import { BaseController } from "./controller.js";
 
 class OltController extends BaseController {
+  ganerateServiceID = async () => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `${yy}${mm}`; // yymm
+
+    // Cari data terakhir yang id-nya diawali dengan prefix yymm
+    const last = await prismaQuery(() =>
+      prisma.olt.findFirst({
+        where: { id: { startsWith: `OLT${prefix}` } },
+        orderBy: { created_at: 'desc' }
+      })
+    );
+
+    let nextNum = 1;
+    if (last && typeof last.id === 'string') {
+      // ambil bagian increment (4 digit) setelah yymm
+      const seqStr = last.id.slice(7); // karena prefix OLTyymm panjang 7
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq)) nextNum = seq + 1;
+    }
+
+    const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
+    return `OLT${prefix}${seqPadded}`; // hasil: OLTyymmIIII
+  }
   getAll = async (req, res, next) => {
     try {
       const { page = 1, limit = 10, search = '' } = req.query;
       const skip = (page - 1) * limit;
       const where = search
         ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-            ]
-          }
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+          ]
+        }
         : undefined;
       const olts = await prismaQuery(() =>
         prisma.olt.findMany({
@@ -72,8 +97,34 @@ class OltController extends BaseController {
 
   create = async (req, res, next) => {
     try {
+      const {
+        name,
+        brand,
+        type,
+        ip_address,
+        username,
+        password,
+        read_community,
+        write_community,
+        latitude,
+        longitude, } = req.body;
+
+      const data = {
+        id: await this.ganerateServiceID(),
+        name,
+        brand,
+        type,
+        ip_address,
+        username,
+        password,
+        read_community,
+        write_community,
+        latitude,
+        longitude,
+      };
+
       const olt = await prismaQuery(() =>
-        prisma.olt.create({ data: req.body })
+        prisma.olt.create({ data: data })
       );
       return this.sendResponse(res, 201, 'OLT created', olt);
     } catch (err) {
@@ -83,10 +134,36 @@ class OltController extends BaseController {
 
   update = async (req, res, next) => {
     try {
+      const {
+        name,
+        brand,
+        type,
+        ip_address,
+        username,
+        password,
+        read_community,
+        write_community,
+        latitude,
+        longitude,
+      } = req.body;
+
+      const data = {
+        name,
+        brand,
+        type,
+        ip_address,
+        username,
+        password,
+        read_community,
+        write_community,
+        latitude,
+        longitude,
+      };
+
       const olt = await prismaQuery(() =>
         prisma.olt.update({
           where: { id: req.params.id },
-          data: req.body
+          data,
         })
       );
       return this.sendResponse(res, 200, 'OLT updated', olt);

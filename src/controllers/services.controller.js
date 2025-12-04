@@ -19,7 +19,7 @@ class ServicesController extends BaseController {
             if (!isNaN(seq)) nextNum = seq + 1;
         }
         const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
-        return `SERV${seqPadded}`; // hasil: SERViiii
+        return `${prefix}${seqPadded}`; // hasil: SERViiii
     }
 
 

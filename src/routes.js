@@ -26,6 +26,7 @@ import ticketSubscriptionController from './controllers/ticket_subscription.cont
 import ticketSiteController from './controllers/ticket_site.controller.js';
 import bpsController from './controllers/bps.controller.js';
 import whatsappController from './controllers/whatsapp.controller.js';
+import notificationController from './controllers/notification.controller.js';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 50 MB limit
 
@@ -67,6 +68,9 @@ router.delete('/customers/:id', requireSession, requireScope(['customer.delete']
 // Subscription routes
 router.get('/coverage', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoverage)
 router.get('/subscriptions', requireSession, requireScope(['subscription.read']), SubscriptionController.getAll)
+
+// Notifications
+router.get('/notifications', requireSession, requireScope(['subscription.read']), notificationController.getAll)
 //get subscription by service id
 router.get('/subscriptions/service/:serviceId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByServiceId)
 router.get('/subscriptions/olt/:oltId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByOltId)

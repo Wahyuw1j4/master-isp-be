@@ -10,6 +10,7 @@ import { Controller } from './controllers/controller.js';
 import { Server } from 'socket.io';
 import { prisma, prismaQuery } from './prisma.js';
 import { restoreAllSessions } from './helpers/waService.js';
+import { addGetingUncfgJob } from './bull/queues/c320GettingUncfg.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -122,7 +123,7 @@ const server = http.createServer(app);
 
 
 const socketIo = setupSocket(server);
-randomNotify(socketIo);
+// randomNotify(socketIo);
 
 app.get('/', (req, res) => {
     socketIo.emit('message', 'Hello, client!');
@@ -165,6 +166,14 @@ socketIo.on('connection', (socket) => {
     socket.on('whatsapp-notif', (data) => {
         socketIo.emit('whatsapp-notif', data);
     });
+
+    socket.on('new-notification', (data) => {
+        socketIo.emit('new-notification', data);
+    });
+
+    socket.on('update-notification', (data) => {
+        socketIo.emit('update-notification', data);
+    });
 });
 
 app.use((err, req, res, next) => {
@@ -177,4 +186,5 @@ app.use((err, req, res, next) => {
 server.listen(port, async () => {
     console.log(`Server running on port ${port}`);
     // await restoreAllSessions();
+    await addGetingUncfgJob();
 });

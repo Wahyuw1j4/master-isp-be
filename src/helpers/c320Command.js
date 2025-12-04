@@ -1,7 +1,17 @@
 import { addRunCommandJob } from "../bull/queues/runCommand.js";
+import { createNotification } from "./Notification.js";
 
 
 const createOnuService = async (subscription, ssh, delay = 0) => {
+    const createNotif = await createNotification({
+        notif_id: `c320-onu-create-${subscription.id}`,
+        notif_identifier: 'c320-onu-create',
+        title: 'Creating ONU Service',
+        message: `Creating ONU service for subscription ${subscription.id}`,
+        category: 'c320',
+        link: `/subscription/${subscription.id}`
+    });
+
     const unsuedOnuNumbers = '20'
     const vlan_profile = 'VLAN220';
     const vlan = '220';
@@ -27,17 +37,42 @@ const createOnuService = async (subscription, ssh, delay = 0) => {
         'security-mgmt 1 state enable mode forward protocol web',
     ]
 
-    await addRunCommandJob(commands2, ssh.host, ssh.username, ssh.password, 'aes128-cbc', true, delay);
+    await addRunCommandJob(delay, { commands: commands2, host: ssh.host, username: ssh.username, password: ssh.password, cipher: 'aes128-cbc', debug: true, notif: createNotif });
 }
 
 const deleteOnuService = async (subscription, ssh, delay = 0) => {
-    const onuNumber = '20' 
+    const createNotif = await createNotification({
+        notif_id: `c320-onu-delete-${subscription.id}`,
+        notif_identifier: 'c320-onu-delete',
+        title: 'Deleting ONU Service',
+        message: `Deleting ONU service for subscription ${subscription.id}`,
+        category: 'c320',
+        link: `/subscription/${subscription.id}`
+    });
+    const onuNumber = '20'
     const commands = [
         'conf t',
         `interface gpon-olt_1/2/12`,
         `no onu ${onuNumber}`,
     ];
-    await addRunCommandJob(commands, ssh.host, ssh.username, ssh.password, 'aes128-cbc', true, delay);
+    await addRunCommandJob(delay, { commands, host: ssh.host, username: ssh.username, password: ssh.password, cipher: 'aes128-cbc', debug: true, notif: createNotif });
 }
 
-export { createOnuService, deleteOnuService };
+const reboot = async (subscription) => {
+    const creteNotif = await createNotification({
+        notif_id: `reboot-onu-${subscription.id}`,
+        notif_identifier: 'reboot-onu',
+        title: 'Rebooting ONU',
+        message: `Rebooting ONU for subscription ${subscription.id}`,
+        category: 'onu',
+        link: `/subscription/${subscription.id}`
+    });
+    const onuNumber = '20'
+    const commands = [
+        `conf t`,
+        `pon-onu-mng gpon-onu_${subscription.onu.onu_index}`,
+        'reboot',
+    ]
+    await addRunCommandJob(0, { commands, host: subscription.olt.ip_address, username: subscription.olt.username, password: subscription.olt.password, cipher: 'aes128-cbc', debug: true, notif: creteNotif });
+}
+export { createOnuService, deleteOnuService, reboot };
