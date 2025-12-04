@@ -9,11 +9,62 @@ const CRUD = ['create', 'read', 'update', 'delete'];
 // Although the request showed colon ("user:create"), this seed will create scopes
 // using the dot notation to match existing `requireScope('x.y')` checks.
 
+// Role definitions with their scopes
+const ROLE_DEFINITIONS = {
+	admin: {
+		description: 'Administrator role with full permissions',
+		// Admin gets ALL scopes (will be assigned dynamically)
+		scopes: 'ALL'
+	},
+	noc: {
+		description: 'Network Operations Center - Monitoring & Network Management',
+		scopes: [
+			// NOC focuses on network monitoring, subscriptions, sites, and OLT management
+			'subscription.read', 'subscription.update',
+			'customer.read',
+			'site.read', 'site.create', 'site.update',
+			'fiber_route.read', 'fiber_route.create', 'fiber_route.update',
+			'maintenance.read', 'maintenance.create', 'maintenance.update', 'maintenance.delete',
+			'service.read',
+			'whatsapp.read', 'whatsapp.create', // for sending notifications
+			'session.read'
+		]
+	},
+	finance: {
+		description: 'Finance - Invoice & Payment Management',
+		scopes: [
+			// Finance focuses on invoices, customers, and financial reports
+			'invoice.read', 'invoice.create', 'invoice.update', 'invoice.delete',
+			'customer.read', 'customer.update',
+			'subscription.read',
+			'service.read',
+			'whatsapp.read', 'whatsapp.create', // for sending payment reminders
+			'session.read'
+		]
+	},
+	teknisi: {
+		description: 'Teknisi - Field Technician for Installation & Maintenance',
+		scopes: [
+			// Teknisi focuses on installation, maintenance, and field work
+			'subscription.read', 'subscription.update',
+			'customer.read',
+			'site.read',
+			'fiber_route.read',
+			'maintenance.read', 'maintenance.create', 'maintenance.update',
+			'technitian.read', 'technitian.update',
+			'manager_technitian.read',
+			'service.read',
+			'session.read'
+		]
+	}
+};
+
 async function main() {
-	console.log('Seeding RBAC scopes and admin role...');
+	console.log('Seeding RBAC scopes and roles...');
 
 	// 1) Create/upsert scopes
 	const createdScopes = [];
+	const scopeMap = new Map(); // name -> scope object
 	for (const resource of RESOURCES) {
 		for (const action of CRUD) {
 			const name = `${resource}.${action}`;
@@ -24,47 +75,105 @@ async function main() {
 				create: { name, description }
 			});
 			createdScopes.push(scope);
+			scopeMap.set(name, scope);
 			console.log(`Upserted scope: ${name}`);
 		}
 	}
 
-	// 2) Create or update an "admin" role and attach all scopes to it
-	const roleName = 'admin';
-	const role = await prisma.roles.upsert({
-		where: { name: roleName },
-		update: { description: 'Administrator role with full permissions', updatedAt: new Date() },
-		create: { name: roleName, description: 'Administrator role with full permissions' }
-	});
-	console.log(`Upserted role: ${roleName}`);
+	// 2) Create roles and assign scopes
+	const roleMap = new Map(); // roleName -> role object
 
-	// 3) Map role -> scopes (createMany with skipDuplicates)
-	const roleScopeRows = createdScopes.map(s => ({ roleId: role.id, scopeId: s.id }));
-	if (roleScopeRows.length) {
-		// createMany with skipDuplicates avoids errors if mappings already exist
-		await prisma.role_scopes.createMany({ data: roleScopeRows, skipDuplicates: true });
-		console.log(`Assigned ${roleScopeRows.length} scopes to role ${roleName}`);
+	for (const [roleName, roleConfig] of Object.entries(ROLE_DEFINITIONS)) {
+		// Create or update role
+		const role = await prisma.roles.upsert({
+			where: { name: roleName },
+			update: { description: roleConfig.description, updatedAt: new Date() },
+			create: { name: roleName, description: roleConfig.description }
+		});
+		roleMap.set(roleName, role);
+		console.log(`Upserted role: ${roleName}`);
+
+		// Determine scopes to assign
+		let scopesToAssign = [];
+		if (roleConfig.scopes === 'ALL') {
+			scopesToAssign = createdScopes;
+		} else {
+			scopesToAssign = roleConfig.scopes
+				.map(scopeName => scopeMap.get(scopeName))
+				.filter(Boolean); // filter out undefined scopes
+		}
+
+		// Map role -> scopes (createMany with skipDuplicates)
+		const roleScopeRows = scopesToAssign.map(s => ({ roleId: role.id, scopeId: s.id }));
+		if (roleScopeRows.length) {
+			await prisma.role_scopes.createMany({ data: roleScopeRows, skipDuplicates: true });
+			console.log(`Assigned ${roleScopeRows.length} scopes to role ${roleName}`);
+		}
 	}
 
-	// 4) Ensure an admin user exists and assign the admin role
-	const adminUsername = 'admin';
-	const adminEmail = "wijaya@gmail.com"
-	const adminPassword = "wijaya123"
+	// 3) Create default users for each role
+	const defaultUsers = [
+		{
+			username: 'admin',
+			email: 'wijaya@gmail.com',
+			password: 'wijaya123',
+			fullName: 'Administrator',
+			role: 'admin'
+		},
+		{
+			username: 'noc',
+			email: 'noc@ayodyanet.com',
+			password: 'noc123',
+			fullName: 'NOC Staff',
+			role: 'noc'
+		},
+		{
+			username: 'finance',
+			email: 'finance@ayodyanet.com',
+			password: 'finance123',
+			fullName: 'Finance Staff',
+			role: 'finance'
+		},
+		{
+			username: 'teknisi',
+			email: 'teknisi@ayodyanet.com',
+			password: 'teknisi123',
+			fullName: 'Teknisi Staff',
+			role: 'teknisi'
+		}
+	];
 
-	// create password hash
-	const salt = await bcrypt.genSalt(10);
-	const hash = await bcrypt.hash(adminPassword, salt);
+	for (const userData of defaultUsers) {
+		const role = roleMap.get(userData.role);
+		const salt = await bcrypt.genSalt(10);
+		const hash = await bcrypt.hash(userData.password, salt);
 
-	const adminUser = await prisma.users.upsert({
-		where: { username: adminUsername },
-		update: { email: adminEmail, passwordHash: hash, fullName: 'Administrator', updatedAt: new Date() },
-		create: { username: adminUsername, email: adminEmail, passwordHash: hash, fullName: 'Administrator', roleId: role.id }
-	});
-	console.log(`Upserted admin user: ${adminUser.username}`);
-
-	// assign role to admin user is now handled via roleId field on user
-	console.log(`Assigned role '${roleName}' to user '${adminUser.username}' via roleId field (1 user : 1 role)`);
+		const user = await prisma.users.upsert({
+			where: { username: userData.username },
+			update: { 
+				email: userData.email, 
+				passwordHash: hash, 
+				fullName: userData.fullName, 
+				roleId: role.id,
+				updatedAt: new Date() 
+			},
+			create: { 
+				username: userData.username, 
+				email: userData.email, 
+				passwordHash: hash, 
+				fullName: userData.fullName, 
+				roleId: role.id 
+			}
+		});
+		console.log(`Upserted user: ${user.username} with role '${userData.role}'`);
+	}
 
 	console.log('RBAC seeding completed.');
+	console.log('\n=== Default Users ===');
+	console.log('Admin    : admin / wijaya123');
+	console.log('NOC      : noc / noc123');
+	console.log('Finance  : finance / finance123');
+	console.log('Teknisi  : teknisi / teknisi123');
 }
 
 main()
