@@ -2,6 +2,27 @@ import { BaseController } from './controller.js';
 import { prisma, prismaQuery } from '../prisma.js';
 
 class ServicesController extends BaseController {
+    ganerateServiceID = async () => {
+        const prefix = 'SERV';
+        // Cari data terakhir yang id-nya diawali dengan prefix SERV
+        const last = await prismaQuery(() =>
+            prisma.services.findFirst({
+                where: { id: { startsWith: prefix } },
+                orderBy: { created_at: 'desc' }
+            })
+        );
+        let nextNum = 1;
+        if (last && typeof last.id === 'string') {
+            // ambil bagian increment (4 digit) setelah SERV
+            const seqStr = last.id.slice(4); // karena prefix SERV panjang 4
+            const seq = parseInt(seqStr, 10);
+            if (!isNaN(seq)) nextNum = seq + 1;
+        }
+        const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
+        return `${prefix}${seqPadded}`; // hasil: SERViiii
+    }
+
+
     paginateAll = async (req, res, next) => {
         try {
             const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
@@ -67,7 +88,13 @@ class ServicesController extends BaseController {
 
     create = async (req, res, next) => {
         try {
-            const service = await prisma.services.create({ data: req.body });
+            const serviceID = await this.ganerateServiceID();
+            const data = { id: serviceID, 
+                    name: req.body.name,
+                    price: req.body.price,
+                    speed: req.body.speed,
+             };
+            const service = await prisma.services.create({ data });
             return this.sendResponse(res, 201, 'Service created', service);
         } catch (err) {
             next(err);

@@ -26,6 +26,7 @@ import ticketSubscriptionController from './controllers/ticket_subscription.cont
 import ticketSiteController from './controllers/ticket_site.controller.js';
 import bpsController from './controllers/bps.controller.js';
 import whatsappController from './controllers/whatsapp.controller.js';
+import notificationController from './controllers/notification.controller.js';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 50 MB limit
 
@@ -60,13 +61,16 @@ router.post('/sessions/me/revoke-all', requireSession, SessionController.revokeA
 router.get('/customers', requireSession, requireScope(['customer.read']), CustomerController.getAll)
 router.get('/customers/search', requireSession, requireScope(['customer.read']), CustomerController.searchCustomers)
 router.get('/customers/:id', requireSession, requireScope(['customer.read']), CustomerController.getById)
-router.post('/customers', requireSession, requireScope(['customer.create']), CustomerController.create)
+router.post('/customers', requireSession, requireScope(['customer.create']), upload.single('ktp_file'), CustomerController.create)
 router.put('/customers/:id', requireSession, requireScope(['customer.update']), CustomerController.update)
 router.delete('/customers/:id', requireSession, requireScope(['customer.delete']), CustomerController.delete)
 
 // Subscription routes
 router.get('/coverage', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoverage)
 router.get('/subscriptions', requireSession, requireScope(['subscription.read']), SubscriptionController.getAll)
+
+// Notifications
+router.get('/notifications', requireSession, requireScope(['subscription.read']), notificationController.getAll)
 //get subscription by service id
 router.get('/subscriptions/service/:serviceId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByServiceId)
 router.get('/subscriptions/olt/:oltId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByOltId)
@@ -81,6 +85,10 @@ router.post('/subscriptions', requireSession, requireScope(['subscription.create
 router.put('/subscriptions/:id/update-proceed', requireSession, requireScope(['subscription.update']), SubscriptionController.updateProceed)
 router.delete('/subscriptions/:id', requireSession, requireScope(['subscription.delete']), SubscriptionController.delete)
 router.post('/subscriptions/create-onu', requireSession, requireScope(['subscription.create']), SubscriptionController.createOnu)
+router.post('/subscriptions/delete-onu', requireSession, requireScope(['subscription.delete']), SubscriptionController.deleteOnu)
+router.post('/subscriptions/reinstall-onu', requireSession, requireScope(['subscription.update']), SubscriptionController.reinstallOnu)
+router.post('/subscriptions/:id/suspend', requireSession, requireScope(['subscription.update']), SubscriptionController.suspendSubscription)
+router.post('/subscriptions/:id/unsuspend', requireSession, requireScope(['subscription.update']), SubscriptionController.unsuspendSubscription)
 
 
 // Services

@@ -315,6 +315,8 @@ model olt {
   brand           String?         @db.VarChar(100)
   type            String?         @db.VarChar(100)
   ip_address      String?         @db.VarChar(45)
+  username        String?         @db.VarChar(100)
+  password        String?         @db.VarChar(100)
   read_community  String?         @db.VarChar(100)
   write_community String?         @db.VarChar(100)
   latitude        Float?
@@ -325,6 +327,10 @@ model olt {
   onus            onus[]
   created_at      DateTime        @default(now())
   updated_at      DateTime        @updatedAt
+  vlanC320s       vlan_c320[]
+  tcontC320s      tcont_c320[]
+  trafficC320s    traffic_c320[]
+  uncfgC320s      uncfg_c320[]
 }
 
 model odc {
@@ -561,14 +567,14 @@ enum wa_key_type {
 }
 
 model whatsapp_account {
-  id           String             @id @default(cuid())
+  id           String              @id @default(cuid())
   label        String?
-  phone_number String?            @unique
-  is_business  Boolean            @default(false)
+  phone_number String?             @unique
+  is_business  Boolean             @default(false)
   sessions     whatsapp_session[]
   templates    whatsapp_template[]
-  created_at   DateTime           @default(now())
-  updated_at   DateTime           @updatedAt
+  created_at   DateTime            @default(now())
+  updated_at   DateTime            @updatedAt
 }
 
 model whatsapp_session {
@@ -634,21 +640,22 @@ enum WhatsappMessageType {
 }
 
 model whatsapp_message_log {
-  id         String           @id @default(cuid())
-  session_id String
-  session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  direction WhatsappDirection // IN | OUT
-  jid String 
-  from_jid String
-  to_jid   String
-  from_number String?
-  to_number   String?
+  id           String              @id @default(cuid())
+  session_id   String
+  session      whatsapp_session    @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  direction    WhatsappDirection // IN | OUT
+  jid          String
+  from_jid     String
+  to_jid       String
+  from_number  String?
+  to_number    String?
   message_id   String?
-  message      Json 
-  message_type WhatsappMessageType 
-  status String? 
-  error  String?
-  created_at DateTime @default(now())
+  message      Json
+  message_type WhatsappMessageType
+  status       String?
+  error        String?
+  created_at   DateTime            @default(now())
+
   @@index([session_id, created_at])
   @@index([jid])
   @@index([from_number])
@@ -656,35 +663,109 @@ model whatsapp_message_log {
 }
 
 model whatsapp_template_variable {
-  id          String             @id @default(cuid())
+  id          String            @id @default(cuid())
   template_id String
-  template    whatsapp_template  @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  template    whatsapp_template @relation(fields: [template_id], references: [id], onDelete: Cascade)
   key         String
   label       String?
   description String?
-  required    Boolean            @default(true)
-  created_at  DateTime           @default(now())
-  updated_at  DateTime           @updatedAt
+  required    Boolean           @default(true)
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
 
   @@unique([template_id, key])
   @@index([template_id])
 }
 
 model whatsapp_template {
-  id           String               @id @default(cuid())
-  code         String               @unique
+  id           String                       @id @default(cuid())
+  code         String                       @unique
   label        String
   body         String
-  message_type WhatsappMessageType  @default(TEXT)
+  message_type WhatsappMessageType          @default(TEXT)
   account_id   String?
-  account      whatsapp_account?    @relation(fields: [account_id], references: [id], onDelete: SetNull)
+  account      whatsapp_account?            @relation(fields: [account_id], references: [id], onDelete: SetNull)
   example_vars Json?
-  is_active    Boolean              @default(true)
+  is_active    Boolean                      @default(true)
   variables    whatsapp_template_variable[]
-  created_at   DateTime             @default(now())
-  updated_at   DateTime             @updatedAt
+  created_at   DateTime                     @default(now())
+  updated_at   DateTime                     @updatedAt
 
   @@index([account_id])
   @@index([code])
 }
 
+model notification {
+  id               String   @id @default(cuid())
+  notif_id         String
+  notif_identifier String
+  loading          Boolean  @default(true)
+  status           Boolean @default(false)
+  title            String
+  message          String
+  category         String?
+  link             String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+}
+
+model vlan_c320 {
+  id           String   @id @default(cuid())
+  olt_id       String
+  olt          olt      @relation(fields: [olt_id], references: [id], onDelete: Cascade)
+  profile_name String
+  tag_mode     String
+  vlan         Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model tcont_c320 {
+  id           String   @id @default(cuid())
+  olt_id       String
+  olt          olt      @relation(fields: [olt_id], references: [id], onDelete: Cascade)
+  profile_name String
+  fbw          Int
+  abw          Int
+  mbw          Int
+  type         String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model traffic_c320 {
+  id           String   @id @default(cuid())
+  olt_id       String
+  olt          olt      @relation(fields: [olt_id], references: [id], onDelete: Cascade)
+  profile_name String
+  sir          Int
+  pir          Int
+  cbs          String
+  pbs          String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model uncfg_c320 {
+  id            String   @id @default(cuid())
+  olt_id        String
+  olt           olt      @relation(fields: [olt_id], references: [id], onDelete: Cascade)
+  onu_index     String
+  serial_number String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@unique([onu_index, olt_id], name: "onu_index_olt_id")
+}
+
+model http_log {
+  id         String   @id @default(cuid())
+  method     String
+  url        String
+  headers    Json?
+  body       String?
+  response   String?
+  status     Int?
+  error      String?
+  created_at DateTime @default(now())
+}

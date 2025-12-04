@@ -2,7 +2,7 @@ import SSH2Shell from 'ssh2shell';
 
 const runCommands = (commands, host, username, password, cipher = null, debug = false) => {
     // insert command in 0 index 
-    // commands.unshift('terminal length 0');
+    commands.unshift('terminal length 0');
     try {
         const SSH = new SSH2Shell({
             server: {
