@@ -182,6 +182,19 @@ class OltController extends BaseController {
       next(err);
     }
   }
+
+  c320GetUnconfig = async (req, res, next) => {
+    try {
+      const uncfg = await prismaQuery(() =>
+        prisma.uncfg_c320.findMany({
+          where: { olt_id: req.params.id },
+        })
+      );
+      return this.sendResponse(res, 200, 'C320 Unconfigured ONUs retrieved', uncfg);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 const oltController = new OltController();

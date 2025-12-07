@@ -5,8 +5,15 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
+import { createOnuService } from "../helpers/c320Command.js";
+import { compressAndUploadImageToR2 } from '../helpers/r2Helper.js';
 
 class InvoiceController extends BaseController {
+    constructor() {
+        super();
+        this.prefixR2 = 'invoice/';
+    }
+
     getAll = async (req, res, next) => {
         try {
             const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
@@ -165,7 +172,7 @@ class InvoiceController extends BaseController {
             res.send(pdfBuffer);
         } catch (err) {
             next(err);
-        } 
+        }
     }
 
     formatCurrency(amount) {
@@ -174,6 +181,64 @@ class InvoiceController extends BaseController {
             currency: 'IDR',
             minimumFractionDigits: 0
         }).format(amount || 0);
+    }
+
+    recordPayment = async (req, res, next) => {
+        try {
+            const { total_invoice, payment_method, is_first_payment } = req.body;
+            if (!total_invoice || !payment_method) {
+                return this.sendResponse(res, 400, 'total_invoice and payment_method are required');
+            }
+
+            if (!req.file) {
+                return this.sendResponse(res, 400, 'Payment proof image is required');
+            }
+
+            if (req.file && !['image/jpeg', 'image/jpg', 'image/png'].includes(req.file.mimetype)) {
+                return this.sendResponse(res, 400, 'Only JPEG images are allowed for payment proof');
+            }
+
+            const extention = path.extname(req.file ? req.file.originalname : '').toLowerCase();
+            const fileName = req.file ? `payment_proof_${req.params.id}${extention}` : null;
+
+            await compressAndUploadImageToR2(
+                req.file ? req.file.buffer : null,
+                this.prefixR2,
+                fileName,
+                req.file ? req.file.mimetype : null
+            );
+
+            const invoice = await prisma.invoice.update({
+                where: { id: req.params.id },
+                data: {
+                    total_invoice: Number(total_invoice),
+                    payment_method,
+                    payment_proof: fileName,
+                    status: 'PAID'
+                }
+            });
+
+            if (is_first_payment) {
+                // If this is the first payment, update the subscription status to ACTIVE
+                const updateSubs = await prisma.subscriptions.update({
+                    where: { id: invoice.subscription_id },
+                    data: { status: 'ACTIVE' },
+                    include: { olt: true, service: true, customer: true }
+                });
+
+                const ssh = {
+                    host: updateSubs.olt.ip_address,
+                    username: updateSubs.olt.username,
+                    password: updateSubs.olt.password,
+                };
+
+                await createOnuService(updateSubs, ssh); // then create ONU with delay
+            }
+
+            return this.sendResponse(res, 200, 'Payment recorded', invoice);
+        } catch (err) {
+            next(err);
+        }
     }
 }
 

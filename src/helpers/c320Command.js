@@ -12,12 +12,12 @@ const createOnuService = async (subscription, ssh, delay = 0) => {
         link: `/subscription/${subscription.id}`
     });
 
-    const unsuedOnuNumbers = '20'
-    const vlan_profile = 'VLAN220';
-    const vlan = '220';
-    const realSpeed = '100';
-    const gemportProfile = 'DW100M';
-    const sn = "ZTEGCE729406"
+    const unsuedOnuNumbers = subscription.onu_number; // This should be dynamically determined in a real scenario
+    const vlan_profile = subscription.vlan_profile;
+    const vlan = subscription.vlan;
+    const realSpeed = subscription.service.speed;
+    const gemportProfile = subscription.traffic_profile;
+    const sn = subscription.serial_number;
     const commands2 = [
         'conf t',
         `interface gpon-olt_1/2/12`,

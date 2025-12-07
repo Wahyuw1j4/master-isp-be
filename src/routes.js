@@ -80,9 +80,14 @@ router.get('/subscriptions/odc/:odcId/coordinates', requireSession, requireScope
 router.get('/subscriptions/odp/:odpId', requireSession, requireScope(['subscription.read']), SubscriptionController.getByOdpId)
 router.get('/subscriptions/odp/:odpId/coordinates', requireSession, requireScope(['subscription.read']), SubscriptionController.getCoordinatesByOdpId)
 router.get('/subscriptions/search', requireSession, requireScope(['subscription.read']), SubscriptionController.searchSubscriptions)
+router.put('/subscriptions/:id', requireSession, requireScope(['subscription.update']), SubscriptionController.update)
+router.get('/subscriptions/technitian', requireSession, requireScope(['technitian.read']), SubscriptionController.getSubscriptionsForTechnitian)
+router.get('/subscriptions/technitian/:id', requireSession, requireScope(['technitian.read']), SubscriptionController.getSubscriptionForTechnitianById)
+router.post('/subscriptions/technitian/:id/update-initial-form', requireSession, requireScope(['technitian.update']), upload.single('form_installation'), SubscriptionController.updateInitialFormForTechnitian)
+router.post('/subscriptions/technitian/:id/update-final-form', requireSession, requireScope(['technitian.update']), SubscriptionController.updateFinalFormForTechnitian)
 router.get('/subscriptions/:id', requireSession, requireScope(['subscription.read']), SubscriptionController.getById)
 router.post('/subscriptions', requireSession, requireScope(['subscription.create']), SubscriptionController.create)
-router.put('/subscriptions/:id/update-proceed', requireSession, requireScope(['subscription.update']), SubscriptionController.updateProceed)
+router.put('/subscriptions/:id/setup', requireSession, requireScope(['subscription.update']), SubscriptionController.subscriptionSetup)
 router.delete('/subscriptions/:id', requireSession, requireScope(['subscription.delete']), SubscriptionController.delete)
 router.post('/subscriptions/create-onu', requireSession, requireScope(['subscription.create']), SubscriptionController.createOnu)
 router.post('/subscriptions/delete-onu', requireSession, requireScope(['subscription.delete']), SubscriptionController.deleteOnu)
@@ -91,8 +96,9 @@ router.post('/subscriptions/:id/suspend', requireSession, requireScope(['subscri
 router.post('/subscriptions/:id/unsuspend', requireSession, requireScope(['subscription.update']), SubscriptionController.unsuspendSubscription)
 
 
+
 // Services
-router.get('/services', requireSession, ServicesController.paginateAll)
+router.get('/services', requireSession, ServicesController. paginateAll)
 router.get('/services/get-all-active', requireSession, requireScope(['service.read']), ServicesController.getAllActive)
 router.get('/services/get-all-inactive-too', requireSession, requireScope(['service.read']), ServicesController.getAllInactiveToo)
 router.get('/services/:id', requireSession, requireScope(['service.read']), ServicesController.getById)
@@ -108,6 +114,7 @@ router.put('/invoices/:id', requireSession, requireScope(['invoice.update']), In
 router.delete('/invoices/:id', requireSession, requireScope(['invoice.delete']), InvoiceController.delete)
 router.get('/invoices/public/:id', InvoiceController.getPublicById)
 router.get('/invoices/public/:id/download', InvoiceController.downloadPublicInvoice)
+router.post('/invoices/:id/record-payment', requireSession, requireScope(['invoice.update']), upload.single('payment_proof'), InvoiceController.recordPayment)
 
 // Invoice details
 router.get('/invoice-details', requireSession, requireScope(['invoice_detail.read']), InvoiceDetailController.getAll)
@@ -143,6 +150,7 @@ router.get('/olts/:id', requireSession, requireScope(['site.read']), OltControll
 router.post('/olts', requireSession, requireScope(['site.create']), OltController.create)
 router.put('/olts/:id', requireSession, requireScope(['site.update']), OltController.update)
 router.delete('/olts/:id', requireSession, requireScope(['site.delete']), OltController.delete)
+router.get('/olts/:id/c320/get-uncfg', requireSession, requireScope(['site.read', 'technitian.read']), OltController.c320GetUnconfig)
 
 // Odc routes
 router.get('/odcs', requireSession, requireScope(['site.read']), OdcController.getAll)
@@ -168,12 +176,17 @@ router.get('/ticket-subscriptions/:id', requireSession, requireScope(['maintenan
 router.post('/ticket-subscriptions', upload.single('image_problem'), requireSession, requireScope(['maintenance.create']), ticketSubscriptionController.create)
 router.put('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.update']), ticketSubscriptionController.update)
 router.delete('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.delete']), ticketSubscriptionController.delete)
+
+// router.get('/ticket-subscriptions/technitian', requireSession, requireScope(['technitian.read']), ticketSubscriptionController.getForTechnitian)
+// router.post('/ticket-subscriptions/technitian/:id/update-progress', requireSession, requireScope(['technitian.update']), ticketSubscriptionController.updateProgressForTechnitian)
 // Ticket site routes
 router.get('/ticket-sites', requireSession, requireScope(['maintenance.read']), ticketSiteController.getAll)
 router.get('/ticket-sites/:id', requireSession, requireScope(['maintenance.read']), ticketSiteController.getById)
 router.post('/ticket-sites', upload.single('image_problem'), requireSession, requireScope(['maintenance.create']), ticketSiteController.create)
 router.put('/ticket-sites/:id', requireSession, requireScope(['maintenance.update']), ticketSiteController.update)
 router.delete('/ticket-sites/:id', requireSession, requireScope(['maintenance.delete']), ticketSiteController.delete)
+// router.get('/ticket-sites/technitian', requireSession, requireScope(['technitian.read']), ticketSiteController.getForTechnitian)
+// router.post('/ticket-sites/technitian/:id/update-progress', requireSession, requireScope(['technitian.update']), ticketSiteController.updateProgressForTechnitian)
 
 
 router.get('/fiber-routes', requireSession, requireScope(['subscription.read']), fiberRouteController.getAll)

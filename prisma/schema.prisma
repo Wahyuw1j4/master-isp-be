@@ -191,6 +191,10 @@ model subscriptions {
   // device / location fields
   oid_identifier String?
   serial_number  String?
+  vlan           Int?
+  vlan_profile   String?
+  traffic_profile String?
+  onu_number     Int?
   mac_address    String?
   status         String?
   latitude       Float?
@@ -376,10 +380,11 @@ model invoice {
   customer_id String
   customer    customers @relation(fields: [customer_id], references: [id])
 
-  total_invoice Float
+  total_invoice Int     @default(0)
   has_tax       Boolean @default(false)
-  tax           Float?
-  grand_total   Float
+  tax           Float     @default(0.11)
+  tax_amount    Int     @default(0)
+  grand_total   Int     @default(0)
 
   paid_at        DateTime?
   payment_method String?
@@ -391,7 +396,7 @@ model invoice {
   pg_created     DateTime?
   no_va          String?
   qris           String?
-  payment_amount Float?
+  payment_amount Int?
   status         String?   @default("unpaid")
 
   description String?
@@ -420,7 +425,7 @@ model invoice_detail {
   subscription    subscriptions? @relation(fields: [subscription_id], references: [id])
 
   invoice_no String
-  invoice    invoice? @relation(fields: [invoice_no], references: [invoice_no])
+  invoice    invoice? @relation(fields: [invoice_no], references: [invoice_no], onUpdate: Cascade, onDelete: Cascade)
 
   status      String?
   index_month Int?
@@ -700,7 +705,7 @@ model notification {
   notif_id         String
   notif_identifier String
   loading          Boolean  @default(true)
-  status           Boolean @default(false)
+  status           Boolean  @default(false)
   title            String
   message          String
   category         String?

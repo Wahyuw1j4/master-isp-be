@@ -1,9 +1,17 @@
 import { BaseController } from "./controller.js";
-import { prismaQuery, prisma } from "../prisma.js";
+import { prismaQuery, prisma, prismaTx } from "../prisma.js";
 import { createOnuService, deleteOnuService } from "../helpers/c320Command.js";
 import { hitMikrotikJob } from "../bull/queues/hitMikrotik.js";
+import { createInvoice } from "../helpers/invoice.js";
+import { getBulanIndo } from "../helpers/time.js";
+import { compressAndUploadImageToR2 } from "../helpers/r2Helper.js";
 
 class SubscriptionController extends BaseController {
+    constructor() {
+        super();
+        this.prefixR2 = 'subscription/';
+    }
+
     getCoverage = async (req, res, next) => {
         try {
             const subscriptions = await prismaQuery(() =>
@@ -170,6 +178,52 @@ class SubscriptionController extends BaseController {
             );
 
             return this.sendResponse(res, 200, 'Subscriptions search results', { data: subscriptions });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    update = async (req, res, next) => {
+        try {
+            const subscriptionId = req.params.id;
+            const data = req.body;
+
+            const allowedFields = [
+                'latitude',
+                'longitude',
+                'description',
+                'serial_number',
+                'pppoe_username',
+                'pppoe_password',
+                'odp_distance',
+                'vlan',
+                'vlan_profile',
+                'traffic_profile',
+                'onu_number'
+            ];
+
+            if (!subscriptionId) {
+                return this.sendResponse(res, 400, 'Subscription ID is required');
+            }
+            if (Object.keys(data).length === 0) {
+                return this.sendResponse(res, 400, 'No data provided for update');
+            }
+            if (!allowedFields.some(field => field in data)) {
+                return this.sendResponse(res, 400, 'No valid fields provided for update');
+            }
+            const updateData = {};
+            for (const field of allowedFields) {
+                if (field in data) {
+                    updateData[field] = data[field];
+                }
+            }
+            const updatedSubscription = await prismaQuery(() =>
+                prisma.subscriptions.update({
+                    where: { id: subscriptionId },
+                    data: updateData
+                })
+            );
+            return this.sendResponse(res, 200, 'Subscription updated', updatedSubscription);
         } catch (err) {
             next(err);
         }
@@ -504,9 +558,9 @@ class SubscriptionController extends BaseController {
         }
     }
 
-    updateProceed = async (req, res, next) => {
+    subscriptionSetup = async (req, res, next) => {
         try {
-            const { olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password } = req.body;
+            const { olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password, vlan, vlan_profile, traffic_profile, onu_number  } = req.body;
             const subscription = await prisma.subscriptions.update({
                 where: { id: req.params.id },
                 data: {
@@ -516,7 +570,11 @@ class SubscriptionController extends BaseController {
                     odp: { connect: { id: odp_id } },
                     odp_distance: odp_distance,
                     pppoe_username: pppoe_username,
-                    pppoe_password: pppoe_password
+                    pppoe_password: pppoe_password,
+                    vlan: vlan,
+                    vlan_profile: vlan_profile,
+                    traffic_profile: traffic_profile,
+                    onu_number: onu_number
                 }
             });
             return this.sendResponse(res, 200, "Subscription updated to PROCEED", subscription);
@@ -538,6 +596,10 @@ class SubscriptionController extends BaseController {
 
     createOnu = async (req, res, next) => {
         try {
+            if (!req.body.subscription_id) {
+                return this.sendResponse(res, 400, "subscription_id is required");
+            }
+
             const subscription = await prisma.subscriptions.findUnique({
                 where: { id: req.body.subscription_id },
                 include: { olt: true }
@@ -557,7 +619,11 @@ class SubscriptionController extends BaseController {
     }
 
     deleteOnu = async (req, res, next) => {
+        
         try {
+            if (!req.body.subscription_id) {
+                return this.sendResponse(res, 400, "subscription_id is required");
+            }
             const subscription = await prisma.subscriptions.findUnique({
                 where: { id: req.body.subscription_id },
                 include: { olt: true }
@@ -577,6 +643,9 @@ class SubscriptionController extends BaseController {
 
     reinstallOnu = async (req, res, next) => {
         try {
+            if (!req.body.subscription_id) {
+                return this.sendResponse(res, 400, "subscription_id is required");
+            }
             const subscription = await prisma.subscriptions.findUnique({
                 where: { id: req.body.subscription_id },
                 include: { olt: true }
@@ -597,6 +666,10 @@ class SubscriptionController extends BaseController {
 
     suspendSubscription = async (req, res, next) => {
         try {
+
+            if (!req.params.id) {
+                return this.sendResponse(res, 400, "Subscription ID is required");
+            }
             const subscription = await prisma.subscriptions.update({
                 where: { id: req.params.id },
                 data: { status: 'SUSPEND' }
@@ -635,6 +708,139 @@ class SubscriptionController extends BaseController {
                 }
             });
             return this.sendResponse(res, 200, "Subscription unsuspended", subscription);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    getSubscriptionsForTechnitian = async (req, res, next) => {
+        try {
+            const userId = req.user && req.user.id;
+            if (!userId) return this.sendResponse(res, 401, 'Unauthorized');
+
+            const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+            const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+            const skip = (page - 1) * limit;
+
+            const where = { status: { in: ['PROCEED', 'PENDING'] } }
+
+            const [data, total] = await prismaQuery(async () => {
+                const total = await prisma.subscriptions.count({ where });
+                const rows = await prisma.subscriptions.findMany({
+                    where,
+                    include: {
+                        customer: { select: { id: true, name: true, phone: true } },
+                        service: { select: { id: true, name: true } },
+                        odc: true,
+                        olt: true,
+                        odp: true
+                    },
+                    orderBy: { created_at: 'desc' },
+                    skip,
+                    take: limit
+                });
+                return [rows, total];
+            });
+
+            const totalPages = Math.ceil(total / limit) || 1;
+            return this.sendResponse(res, 200, 'Subscriptions retrieved', { data, meta: { page, limit, total, totalPages } });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // Returns a single subscription if it's assigned to one of the user's teams
+    getSubscriptionForTechnitianById = async (req, res, next) => {
+        try {
+            const userId = req.user && req.user.id;
+            if (!userId) return this.sendResponse(res, 401, 'Unauthorized');
+
+
+            const subscription = await prisma.subscriptions.findUnique({
+                where: { id: req.params.id },
+                include: {
+                    customer: { select: { name: true } },
+                    service: { select: { name: true, speed: true } },
+                    odc: { select: { name: true } },
+                    olt: { select: { name: true, brand: true, type: true } },
+                    odp: { select: { name: true } }
+                }
+            });
+            if (!subscription) {
+                const err = new Error('Subscription not found');
+                err.status = 404;
+                return next(err);
+            }
+
+            return this.sendResponse(res, 200, 'Subscription retrieved', subscription);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // Initial form update by technitian (simple: accept allowed fields and update)
+    updateInitialFormForTechnitian = async (req, res, next) => {
+        try {
+            const { serial_number, odp_distance } = req.body;
+            const id = req.params.id;
+            if (!req.file || !req.file.buffer) {
+                return this.sendResponse(res, 400, 'form_installation file is required');
+            }
+            const subscriptionTx = await prismaTx(async (tx, afterCommit) => {
+                const extentionFile = req.file.originalname.split('.').pop();
+                const fileName = "form_installation" + '_' + id + '_' + Date.now() + '.' + extentionFile;
+                afterCommit(async () => {
+                    await compressAndUploadImageToR2(
+                        { buffer: req.file.buffer, filename: fileName, mimeType: req.file.mimetype },
+                        { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
+                    );
+                });
+
+                const subscription = await tx.subscriptions.update({
+                        where: { id },
+                        data: { serial_number, odp_distance: parseInt(odp_distance), form_installation: fileName },
+                        include: { service: true }
+                    });
+
+                const invoice = await createInvoice({ tx, afterCommit }, {
+                    customerId: subscription.customer_id,
+                    subscriptionId: subscription.id,
+                    description: `Langganan ${subscription.service.name} bulan ${getBulanIndo(new Date().getMonth() + 1)} ${new Date().getFullYear()} segera lakukan pembayaran untuk mengaktifkan layanan Anda.`,
+                    invDtl: [
+                        {
+                            billingName: `${subscription.service.name} [ID ${subscription.id}]`,
+                            billingDescription: `Langganan ${subscription.service.name} bulan ${getBulanIndo(new Date().getMonth() + 1)} ${new Date().getFullYear()}`,
+                            billingPrice: subscription.service.price,
+                        },
+                    ],
+                })
+
+                return { subscription, invoice };
+            });
+
+
+            return this.sendResponse(res, 200, 'Initial form updated and invoice created', { subscription: subscriptionTx.subscription, invoice: subscriptionTx.invoice });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // Final form update by technitian (simple: accept allowed fields and mark ACTIVE)
+    updateFinalFormForTechnitian = async (req, res, next) => {
+        try {
+            const userId = req.user && req.user.id;
+            if (!userId) return this.sendResponse(res, 401, 'Unauthorized');
+
+            const subscriptionId = req.params.id;
+            const allowed = ['cpe_photo', 'form_installation', 'speed_test_photo', 'description'];
+            const payload = {};
+            for (const k of allowed) if (k in req.body) payload[k] = req.body[k];
+
+            payload.installation_by_user_id = userId;
+            payload.status = 'ACTIVE';
+
+            const subscription = await prisma.subscriptions.update({ where: { id: subscriptionId }, data: payload });
+            return this.sendResponse(res, 200, 'Final form updated', subscription);
         } catch (err) {
             next(err);
         }

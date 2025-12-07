@@ -20,12 +20,12 @@ const ROLE_DEFINITIONS = {
 		description: 'Network Operations Center - Monitoring & Network Management',
 		scopes: [
 			// NOC focuses on network monitoring, subscriptions, sites, and OLT management
-			'subscription.read', 'subscription.update',
-			'customer.read',
+			'subscription.read', 'subscription.update', 'subscription.create',
+			'customer.read', 'customer.update', 'customer.create',
 			'site.read', 'site.create', 'site.update',
 			'fiber_route.read', 'fiber_route.create', 'fiber_route.update',
-			'maintenance.read', 'maintenance.create', 'maintenance.update', 'maintenance.delete',
-			'service.read',
+			'maintenance.read', 'maintenance.create', 'maintenance.update',
+			'service.read', 
 			'whatsapp.read', 'whatsapp.create', // for sending notifications
 			'session.read'
 		]

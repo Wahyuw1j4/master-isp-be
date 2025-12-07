@@ -3,16 +3,41 @@ import { prismaQuery, prisma } from "../prisma.js";
 import { BaseController } from "./controller.js";
 
 class OdcController extends BaseController {
+  ganerateServiceID = async () => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `${yy}${mm}`; // yymm
+
+    // Cari data terakhir yang id-nya diawali dengan prefix yymm
+    const last = await prismaQuery(() =>
+      prisma.odc.findFirst({
+        where: { id: { startsWith: `ODC${prefix}` } },
+        orderBy: { created_at: 'desc' }
+      })
+    );
+
+    let nextNum = 1;
+    if (last && typeof last.id === 'string') {
+      // ambil bagian increment (4 digit) setelah yymm
+      const seqStr = last.id.slice(7); // karena prefix ODCyymm panjang 7
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq)) nextNum = seq + 1;
+    }
+
+    const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
+    return `ODC${prefix}${seqPadded}`; // hasil: ODCyymmIIII
+  }
   getAll = async (req, res, next) => {
     try {
       const { page = 1, limit = 10, search = '' } = req.query;
       const skip = (page - 1) * limit;
       const where = search
         ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-            ]
-          }
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+          ]
+        }
         : undefined;
       const odcs = await prismaQuery(() =>
         prisma.odc.findMany({
@@ -66,7 +91,7 @@ class OdcController extends BaseController {
         err.status = 404;
         return next(err);
       }
-      return this.sendResponse(res, 200, 'Odc retrieved', odc );
+      return this.sendResponse(res, 200, 'Odc retrieved', odc);
     } catch (err) {
       next(err);
     }
@@ -74,10 +99,12 @@ class OdcController extends BaseController {
 
   create = async (req, res, next) => {
     try {
+      const {name, olt_id, latitude, longitude} = req.body;
+      req.body.id = await this.ganerateServiceID();
       const odc = await prismaQuery(() =>
-        prisma.odc.create({ data: req.body })
+        prisma.odc.create({ data: { name, olt_id, latitude, longitude, id: req.body.id } })
       );
-      return this.sendResponse(res, 201, 'Odc created', odc );
+      return this.sendResponse(res, 201, 'Odc created', odc);
     } catch (err) {
       next(err);
     }

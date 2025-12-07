@@ -1,5 +1,5 @@
 import { registerWorker } from "./config/bull.js";
-import { compressAndUploadImageToR2 } from "../helpers/compressAndUploadImageToR2.js";
+import { compressAndUploadImageToR2 } from "../helpers/r2Helper.js";
 import { uploadR2Queue } from "./queues/uploadR2.js";
 import { sendInvoiceQueue } from "./queues/sendInvoice.js";
 import { sendWhatsappQueue } from "./queues/sendWhatsapp.js";
@@ -89,6 +89,7 @@ registerWorker(runCommandQueue, async (job) => {
                 });
                 break;
             case 'c320-onu-delete':
+                console.log('masuk delete error:', error);
                 const updateNotifDel = await updateNotification(notif.id, {
                     title: 'ONU Service Deletion Failed',
                     message: `Failed to delete ONU service.`,

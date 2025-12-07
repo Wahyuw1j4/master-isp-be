@@ -37,6 +37,32 @@ class OdpController extends BaseController {
     }
   }
 
+  ganerateOdpId = async () => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `${yy}${mm}`; // yymm
+
+    // Cari data terakhir yang id-nya diawali dengan prefix yymm
+    const last = await prismaQuery(() =>
+      prisma.odp.findFirst({
+        where: { id: { startsWith: `ODP${prefix}` } },
+        orderBy: { created_at: 'desc' }
+      })
+    );
+
+    let nextNum = 1;
+    if (last && typeof last.id === 'string') {
+      // ambil bagian increment (4 digit) setelah yymm
+      const seqStr = last.id.slice(7); // karena prefix ODPyymm panjang 7
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq)) nextNum = seq + 1;
+    }
+
+    const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
+    return `ODP${prefix}${seqPadded}`; // hasil: ODPyymmIIII
+  }
+
   searchOdps = async (req, res, next) => {
     try {
       const { q } = req.query;
@@ -70,22 +96,40 @@ class OdpController extends BaseController {
         return next(err);
       }
       const lim = parseInt(limit) || 5;
-
-      const odps = await prismaQuery(() =>
-        prisma.$queryRaw`
-          SELECT odp.*,
+      console.log('query:', `SELECT odp.*,
             row_to_json(odc) AS odc,
             row_to_json(olt) AS olt,
         ST_DistanceSphere(
-          ST_MakePoint(${lngNum}, ${latNum}),
-          ST_MakePoint(odp.longitude, odp.latitude)
+          ST_MakePoint(${lngNum}::double precision, ${latNum}::double precision),
+          ST_MakePoint(odp.longitude::double precision, odp.latitude::double precision)
         ) AS distance
           FROM public.odp AS odp
           LEFT JOIN public.odc AS odc ON odp.odc_id = odc.id
           LEFT JOIN public.olt AS olt ON odp.olt_id = olt.id
           ORDER BY distance
-          LIMIT ${lim}
-        `
+          LIMIT ${lim}`);
+      const odps = await prismaQuery(() =>
+        prisma.$queryRaw`
+    SELECT 
+      odp.*,
+      row_to_json(odc) AS odc,
+      row_to_json(olt) AS olt,
+      ST_DistanceSphere(
+        ST_MakePoint(
+          CAST(${lngNum} AS double precision), 
+          CAST(${latNum} AS double precision)
+        ),
+        ST_MakePoint(
+          odp.longitude::double precision, 
+          odp.latitude::double precision
+        )
+      ) AS distance
+    FROM public.odp AS odp
+    LEFT JOIN public.odc AS odc ON odp.odc_id = odc.id
+    LEFT JOIN public.olt AS olt ON odp.olt_id = olt.id
+    ORDER BY distance
+    LIMIT ${Number(lim)}
+  `
       );
       return this.sendResponse(res, 200, 'Nearby ODPs retrieved ', odps);
     } catch (err) {
@@ -114,8 +158,11 @@ class OdpController extends BaseController {
 
   create = async (req, res, next) => {
     try {
+      console.log('data:', req.data);
+      const { name, odc_id, olt_id, latitude, longitude } = req.body;
+      const id = await this.ganerateOdpId();
       const odp = await prismaQuery(() =>
-        prisma.odp.create({ data: req.body })
+        prisma.odp.create({ data: { name, odc_id, olt_id, latitude, longitude, id } })
       );
       return this.sendResponse(res, 201, 'Odp created', odp);
     } catch (err) {

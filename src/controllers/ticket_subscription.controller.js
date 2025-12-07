@@ -1,6 +1,6 @@
 import { prisma, prismaQuery } from '../prisma.js';
 import { BaseController } from './controller.js';
-import { compressAndUploadImageToR2, getR2SignedUrl } from '../helpers/compressAndUploadImageToR2.js';
+import { compressAndUploadImageToR2, getR2SignedUrl } from '../helpers/r2Helper.js';
 
 class TicketSubscriptionController extends BaseController {
     constructor() {
