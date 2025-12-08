@@ -98,7 +98,7 @@ router.post('/subscriptions/:id/unsuspend', requireSession, requireScope(['subsc
 
 
 // Services
-router.get('/services', requireSession, ServicesController. paginateAll)
+router.get('/services', requireSession, ServicesController.paginateAll)
 router.get('/services/get-all-active', requireSession, requireScope(['service.read']), ServicesController.getAllActive)
 router.get('/services/get-all-inactive-too', requireSession, requireScope(['service.read']), ServicesController.getAllInactiveToo)
 router.get('/services/:id', requireSession, requireScope(['service.read']), ServicesController.getById)
@@ -172,22 +172,27 @@ router.delete('/odps/:id', requireSession, requireScope(['site.delete']), OdpCon
 
 // Ticket subscription routes
 router.get('/ticket-subscriptions', requireSession, requireScope(['maintenance.read']), ticketSubscriptionController.getAll)
-router.get('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.read']), ticketSubscriptionController.getById)
 router.post('/ticket-subscriptions', upload.single('image_problem'), requireSession, requireScope(['maintenance.create']), ticketSubscriptionController.create)
+router.get('/ticket-subscriptions/technitian', requireSession, requireScope(['technitian.read'],), ticketSubscriptionController.getForTechnitian)
+router.get('/ticket-subscriptions/technitian/:id', requireSession, requireScope(['technitian.read']), ticketSubscriptionController.getForTechnitianById)
+router.post('/ticket-subscriptions/technitian/:id/update-progress', requireSession, requireScope(['technitian.update']), upload.single('image_problem'), ticketSubscriptionController.updateProgressForTechnitian)
+router.post('/ticket-subscriptions/technitian/:id/update-cancelation', requireSession, requireScope(['technitian.update']), ticketSubscriptionController.updateCancellationForTechnitian)
+router.get('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.read', 'technitian.read']), ticketSubscriptionController.getById)
 router.put('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.update']), ticketSubscriptionController.update)
+router.put('/ticket-subscriptions/:id/finished', requireSession, requireScope(['maintenance.update']), ticketSubscriptionController.update)
+router.put('/ticket-subscriptions/:id/canceled', requireSession, requireScope(['maintenance.update']), ticketSubscriptionController.update)
 router.delete('/ticket-subscriptions/:id', requireSession, requireScope(['maintenance.delete']), ticketSubscriptionController.delete)
 
-// router.get('/ticket-subscriptions/technitian', requireSession, requireScope(['technitian.read']), ticketSubscriptionController.getForTechnitian)
-// router.post('/ticket-subscriptions/technitian/:id/update-progress', requireSession, requireScope(['technitian.update']), ticketSubscriptionController.updateProgressForTechnitian)
+
 // Ticket site routes
 router.get('/ticket-sites', requireSession, requireScope(['maintenance.read']), ticketSiteController.getAll)
 router.get('/ticket-sites/:id', requireSession, requireScope(['maintenance.read']), ticketSiteController.getById)
 router.post('/ticket-sites', upload.single('image_problem'), requireSession, requireScope(['maintenance.create']), ticketSiteController.create)
 router.put('/ticket-sites/:id', requireSession, requireScope(['maintenance.update']), ticketSiteController.update)
 router.delete('/ticket-sites/:id', requireSession, requireScope(['maintenance.delete']), ticketSiteController.delete)
-// router.get('/ticket-sites/technitian', requireSession, requireScope(['technitian.read']), ticketSiteController.getForTechnitian)
-// router.post('/ticket-sites/technitian/:id/update-progress', requireSession, requireScope(['technitian.update']), ticketSiteController.updateProgressForTechnitian)
-
+router.get('/ticket-sites/technitian', requireSession, requireScope(['technitian.read']), ticketSiteController.getForTechnitian)
+router.post('/ticket-sites/technitian/:id/update-solved', requireSession, requireScope(['technitian.update']), upload.single('picture_from_technician'), ticketSiteController.updateSolvedForTechnitian)
+router.post('/ticket-sites/technitian/:id/update-cancelation', requireSession, requireScope(['technitian.update']), ticketSiteController.updateCancellationForTechnitian)
 
 router.get('/fiber-routes', requireSession, requireScope(['subscription.read']), fiberRouteController.getAll)
 router.post('/fiber-routes', requireSession, requireScope(['subscription.create']), fiberRouteController.create)

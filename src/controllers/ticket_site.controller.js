@@ -312,6 +312,62 @@ class TicketSiteController extends BaseController {
       next(err);
     }
   }
+
+  getForTechnitian = async (req, res, next) => {
+    try {
+      const tickets = await prismaQuery(() =>
+        prisma.ticket_site.findMany({
+          where: { handle_by_team: req.user && req.user.id },
+          include: { submit_by_user: true, handle_by_team_rel: true, ticket_details: true },
+        })
+      );
+      return this.sendResponse(res, 200, 'Ticket sites for technitian retrieved', tickets);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  updateSolvedForTechnitian = async (req, res, next) => {
+    try {
+      const { technician_update_desc } = req.body;
+      const data = {
+        status: 'Solved',
+        technician_update_desc: req.body.technician_update_desc,
+        
+      };
+      const ticket = await prismaQuery(() => prisma.ticket_site.update({ where: { mt_site_id: req.params.id }, data }));
+      return this.sendResponse(res, 200, 'Ticket site progress updated', ticket);
+    } catch (err) {
+      next(err);
+    }
+  }
+  updateCompletionForTechnitian = async (req, res, next) => {
+    try {
+      const data = {
+        status: 'Completed',
+        technician_report: req.body.technician_report,
+        handle_by_team: req.user && req.user.id,
+      };
+      const ticket = await prismaQuery(() => prisma.ticket_site.update({ where: { mt_site_id: req.params.id }, data }));
+      return this.sendResponse(res, 200, 'Ticket site completion updated', ticket);
+    } catch (err) {
+      next(err);
+    }
+  }
+  updateCancellationForTechnitian = async (req, res, next) => {
+    try {
+      const data = {
+        status: 'Cancelled',
+        technician_report: req.body.technician_report,
+        handle_by_team: req.user && req.user.id,
+      };
+      const ticket = await prismaQuery(() => prisma.ticket_site.update({ where: { mt_site_id: req.params.id }, data }));
+      return this.sendResponse(res, 200, 'Ticket site cancellation updated', ticket);
+    } catch (err) {
+      next(err);
+    }
+  }
+
 }
 
 const ticketSiteController = new TicketSiteController();

@@ -7,6 +7,34 @@ class TicketSubscriptionController extends BaseController {
         super();
         this.prefixR2 = 'ticket-subscriptions/';
     }
+
+    generateCustomerID = async () => {
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const prefix = `${yy}${mm}`; // yymm
+
+        // Cari data terakhir yang id-nya diawali dengan prefix yymm
+        const last = await prismaQuery(() =>
+            prisma.ticket_subscription.findFirst({
+                where: { id: { startsWith: `TS${prefix}` } },
+                orderBy: { created_at: 'desc' }
+            })
+        );
+
+        let nextNum = 1;
+        if (last && typeof last.id === 'string') {
+            // ambil bagian increment (4 digit) setelah yymm
+            const seqStr = last.id.slice(8); // karena prefix TSyymm panjang 8
+            const seq = parseInt(seqStr, 10);
+            if (!isNaN(seq)) nextNum = seq + 1;
+        }
+
+        const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
+        return `TS${prefix}${seqPadded}`; // hasil: yymmiiii
+    }
+
+
     getAll = async (req, res, next) => {
         try {
             const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
@@ -88,6 +116,7 @@ class TicketSubscriptionController extends BaseController {
             const payload = req.data || req.body || {};
 
             const data = {
+                id: await this.generateTicketSubsId(),
                 subscription_id: payload.subscription_id,
                 customer_id: payload.customer_id,
                 subject_problem: payload.subject_problem,
@@ -108,7 +137,7 @@ class TicketSubscriptionController extends BaseController {
                 );
             }
 
-            
+
             return this.sendResponse(res, 201, 'Ticket subscription created', ticket);
         } catch (err) {
             next(err);
@@ -133,6 +162,117 @@ class TicketSubscriptionController extends BaseController {
             next(err);
         }
     }
+
+    getForTechnitian = async (req, res, next) => {
+        try {
+            const tickets = await prismaQuery(() =>
+                prisma.ticket_subscription.findMany({
+                    where: { status: 'Open' },
+                    include: { submit_by_user: true, work_by_user: true, subscription: true, customer: { select: { id: true, name: true } } },
+                })
+            );
+            return this.sendResponse(res, 200, 'Ticket subscriptions for technitian retrieved', tickets);
+        } catch (err) {
+            next(err);
+        }
+    }
+    getForTechnitianById = async (req, res, next) => {
+        try {
+            const ticket = await prismaQuery(() =>
+                prisma.ticket_subscription.findUnique({
+                    where: {
+                        ticket_id: req.params.id,
+                    },
+                    include: {
+                        submit_by_user: true,
+                        work_by_user: true,
+                        subscription: {
+                            select: {
+                                serial_number: true,
+                                longitude: true,
+                                latitude: true,
+                                olt: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    },
+                                },
+                                odc: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    },
+                                },
+                                odp: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                        customer: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                })
+            );
+
+
+            ticket.picture_from_customer = ticket.picture_from_customer ? await getR2SignedUrl(this.prefixR2 + ticket.picture_from_customer, 600) : null; // URL berlaku selama 10 menit
+            if (!ticket) return this.sendResponse(res, 404, 'Ticket subscription not found');
+            return this.sendResponse(res, 200, 'Ticket subscription for technitian retrieved', ticket);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    updateProgressForTechnitian = async (req, res, next) => {
+        try {
+            const {id} = req.params;
+            const data = {
+                status: 'Solved',
+                progress_report: req.body.progress_report,
+                work_by: req.user.id,
+            };
+            if (!req.file) {
+                $this.sendResponse(res, 400, 'Image from technician is required');
+                return;
+            }
+            const extentionFile = req.file.originalname.split('.').pop();
+            const fileName = "mtsubs_solved_" + id + '_' + Date.now() + '.' + extentionFile;
+
+            data.picture_from_technician = fileName;
+            await compressAndUploadImageToR2(
+                { buffer: req.file.buffer, filename: fileName, mimeType: req.file.mimetype },
+                { keyPrefix: this.prefixR2, cacheControl: 'public, max-age=86400' }
+            );
+
+            const ticket = await prismaQuery(() => prisma.ticket_subscription.update({ where: { ticket_id: req.params.id }, data }));
+            return this.sendResponse(res, 200, 'Ticket subscription progress updated', ticket);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+
+    updateCancellationForTechnitian = async (req, res, next) => {
+        try {
+            const data = {
+                status: 'Closed',
+                cancellation_report: req.body.cancellation_report,
+                work_by: req.user && req.user.id,
+            };
+            const ticket = await prismaQuery(() => prisma.ticket_subscription.update({ where: { ticket_id: req.params.id }, data }));
+            return this.sendResponse(res, 200, 'Ticket subscription cancellation updated', ticket);
+        } catch (err) {
+            next(err);
+        }
+    }
+
 }
 
 const ticketSubscriptionController = new TicketSubscriptionController();

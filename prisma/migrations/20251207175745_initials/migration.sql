@@ -10,6 +10,12 @@ CREATE TYPE "public"."wa_session_status" AS ENUM ('CONNECTING', 'OPEN', 'CLOSED'
 -- CreateEnum
 CREATE TYPE "public"."wa_key_type" AS ENUM ('PREKEY', 'SESSION', 'SENDER_KEY', 'APP_STATE_SYNC', 'IDENTITY', 'OTHERS');
 
+-- CreateEnum
+CREATE TYPE "public"."WhatsappDirection" AS ENUM ('IN', 'OUT');
+
+-- CreateEnum
+CREATE TYPE "public"."WhatsappMessageType" AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT', 'STICKER', 'CONTACT', 'LOCATION', 'BUTTON', 'OTHER');
+
 -- CreateTable
 CREATE TABLE "public"."users" (
     "id" TEXT NOT NULL,
@@ -18,8 +24,8 @@ CREATE TABLE "public"."users" (
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "sessionVersion" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
     "roleId" TEXT,
     "metaData" JSONB,
 
@@ -31,8 +37,8 @@ CREATE TABLE "public"."roles" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
 );
@@ -42,8 +48,8 @@ CREATE TABLE "public"."scopes" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "scopes_pkey" PRIMARY KEY ("id")
 );
@@ -71,10 +77,10 @@ CREATE TABLE "public"."sessions" (
     "userId" TEXT NOT NULL,
     "userAgent" TEXT,
     "ipAddr" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastSeenAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
-    "revokedAt" TIMESTAMP(3),
+    "revokedAt" TIMESTAMPTZ(3),
     "sessionVersion" INTEGER NOT NULL,
 
     CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
@@ -90,8 +96,8 @@ CREATE TABLE "public"."customers" (
     "ktp_number" TEXT,
     "ktp_photo" TEXT,
     "password" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
 );
@@ -102,10 +108,10 @@ CREATE TABLE "public"."services" (
     "name" TEXT NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
     "speed" DOUBLE PRECISION NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "discount" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "services_pkey" PRIMARY KEY ("id")
 );
@@ -122,6 +128,10 @@ CREATE TABLE "public"."subscriptions" (
     "postal_code" TEXT,
     "oid_identifier" TEXT,
     "serial_number" TEXT,
+    "vlan" INTEGER,
+    "vlan_profile" TEXT,
+    "traffic_profile" TEXT,
+    "onu_number" INTEGER,
     "mac_address" TEXT,
     "status" TEXT,
     "latitude" DOUBLE PRECISION,
@@ -140,14 +150,14 @@ CREATE TABLE "public"."subscriptions" (
     "speed_test_photo" TEXT,
     "form_installation" TEXT,
     "description" TEXT,
-    "installation_date" TIMESTAMP(3),
+    "installation_date" TIMESTAMPTZ(3),
     "installation_by_team_id" TEXT,
     "installation_by_user_id" TEXT,
     "created_by" TEXT,
-    "next_invoice_date" TIMESTAMP(3),
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "deleted_at" TIMESTAMP(3),
+    "next_invoice_date" TIMESTAMPTZ(3),
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+    "deleted_at" TIMESTAMPTZ(3),
 
     CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
 );
@@ -174,8 +184,8 @@ CREATE TABLE "public"."snmp_values" (
     "metric_key" TEXT NOT NULL,
     "oid" TEXT NOT NULL,
     "value" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "snmp_values_pkey" PRIMARY KEY ("id")
 );
@@ -199,12 +209,15 @@ CREATE TABLE "public"."olt" (
     "brand" VARCHAR(100),
     "type" VARCHAR(100),
     "ip_address" VARCHAR(45),
+    "username" VARCHAR(100),
+    "password" VARCHAR(100),
     "read_community" VARCHAR(100),
     "write_community" VARCHAR(100),
+    "port_capacity" INTEGER NOT NULL,
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "olt_pkey" PRIMARY KEY ("id")
 );
@@ -216,8 +229,9 @@ CREATE TABLE "public"."odc" (
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
     "olt_id" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "port_capacity" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "odc_pkey" PRIMARY KEY ("id")
 );
@@ -230,8 +244,9 @@ CREATE TABLE "public"."odp" (
     "longitude" DOUBLE PRECISION,
     "odc_id" TEXT NOT NULL,
     "olt_id" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "port_capacity" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "odp_pkey" PRIMARY KEY ("id")
 );
@@ -242,8 +257,8 @@ CREATE TABLE "public"."fiber_route" (
     "name" VARCHAR(100) NOT NULL,
     "polyline" JSONB[],
     "color" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "fiber_route_pkey" PRIMARY KEY ("id")
 );
@@ -253,26 +268,27 @@ CREATE TABLE "public"."invoice" (
     "id" TEXT NOT NULL,
     "invoice_no" TEXT NOT NULL,
     "customer_id" TEXT NOT NULL,
-    "total_invoice" DOUBLE PRECISION NOT NULL,
+    "total_invoice" INTEGER NOT NULL DEFAULT 0,
     "has_tax" BOOLEAN NOT NULL DEFAULT false,
-    "tax" DOUBLE PRECISION,
-    "grand_total" DOUBLE PRECISION NOT NULL,
-    "paid_at" TIMESTAMP(3),
+    "tax" DOUBLE PRECISION NOT NULL DEFAULT 0.11,
+    "tax_amount" INTEGER NOT NULL DEFAULT 0,
+    "grand_total" INTEGER NOT NULL DEFAULT 0,
+    "paid_at" TIMESTAMPTZ(3),
     "payment_method" TEXT,
     "receive_by" TEXT,
     "approved_by" TEXT,
     "pg_id" TEXT,
     "pg_ref" TEXT,
-    "pg_created" TIMESTAMP(3),
+    "pg_created" TIMESTAMPTZ(3),
     "no_va" TEXT,
     "qris" TEXT,
-    "payment_amount" DOUBLE PRECISION,
+    "payment_amount" INTEGER,
     "status" TEXT DEFAULT 'unpaid',
     "description" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
     "payment_proof" TEXT,
-    "last_invoice_sent_date" TIMESTAMP(3),
+    "last_invoice_sent_date" TIMESTAMPTZ(3),
     "subscription_id" TEXT,
     "sku" TEXT,
 
@@ -286,12 +302,12 @@ CREATE TABLE "public"."invoice_detail" (
     "invoice_no" TEXT NOT NULL,
     "status" TEXT,
     "index_month" INTEGER,
-    "date" TIMESTAMP(3),
+    "date" TIMESTAMPTZ(3),
     "billing_name" TEXT NOT NULL,
     "billing_description" TEXT,
     "billing_price" DOUBLE PRECISION NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "invoice_detail_pkey" PRIMARY KEY ("id")
 );
@@ -303,8 +319,8 @@ CREATE TABLE "public"."vendor_tenchnitian" (
     "contact_person" TEXT,
     "email" VARCHAR(255),
     "address" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "vendor_tenchnitian_pkey" PRIMARY KEY ("id")
 );
@@ -315,8 +331,8 @@ CREATE TABLE "public"."technitian_team" (
     "name" TEXT NOT NULL,
     "status" TEXT DEFAULT 'active',
     "leader" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "technitian_team_pkey" PRIMARY KEY ("id")
 );
@@ -326,8 +342,8 @@ CREATE TABLE "public"."technitian_team_member" (
     "member_id" TEXT NOT NULL,
     "team_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "technitian_team_member_pkey" PRIMARY KEY ("member_id")
 );
@@ -342,15 +358,14 @@ CREATE TABLE "public"."ticket_subscription" (
     "technician_update_desc" TEXT,
     "work_by" TEXT,
     "open_by" TEXT,
-    "open_at" TIMESTAMP(3),
-    "closed_at" TIMESTAMP(3),
+    "closed_at" TIMESTAMPTZ(3),
     "created_by" TEXT,
-    "ticket_close_date" TIMESTAMP(3),
+    "ticket_close_date" TIMESTAMPTZ(3),
     "status" TEXT DEFAULT 'Open',
     "picture_from_customer" TEXT,
     "picture_from_technician" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
     "submit_by" TEXT,
     "handle_by_team" TEXT,
 
@@ -367,8 +382,8 @@ CREATE TABLE "public"."ticket_site" (
     "submit_by" TEXT,
     "handle_by_team" TEXT,
     "created_by" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "ticket_site_pkey" PRIMARY KEY ("mt_site_id")
 );
@@ -380,11 +395,11 @@ CREATE TABLE "public"."ticket_site_detail" (
     "site_id" TEXT NOT NULL,
     "solved_picture" TEXT,
     "technician_report" TEXT,
-    "solved_at" TIMESTAMP(3),
+    "solved_at" TIMESTAMPTZ(3),
     "solved_by" TEXT,
     "status" TEXT DEFAULT 'open',
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "ticket_site_detail_pkey" PRIMARY KEY ("maintenance_site_detail_id")
 );
@@ -395,8 +410,8 @@ CREATE TABLE "public"."whatsapp_account" (
     "label" TEXT,
     "phone_number" TEXT,
     "is_business" BOOLEAN NOT NULL DEFAULT false,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "whatsapp_account_pkey" PRIMARY KEY ("id")
 );
@@ -408,14 +423,14 @@ CREATE TABLE "public"."whatsapp_session" (
     "name" TEXT NOT NULL,
     "status" "public"."wa_session_status" NOT NULL DEFAULT 'CONNECTING',
     "qr_raw" TEXT,
-    "qr_updated_at" TIMESTAMP(3),
-    "connected_at" TIMESTAMP(3),
-    "disconnected_at" TIMESTAMP(3),
-    "last_conn_update_at" TIMESTAMP(3),
+    "qr_updated_at" TIMESTAMPTZ(3),
+    "connected_at" TIMESTAMPTZ(3),
+    "disconnected_at" TIMESTAMPTZ(3),
+    "last_conn_update_at" TIMESTAMPTZ(3),
     "webhook_url" TEXT,
     "meta" JSONB,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "whatsapp_session_pkey" PRIMARY KEY ("id")
 );
@@ -425,8 +440,8 @@ CREATE TABLE "public"."whatsapp_creds" (
     "session_id" TEXT NOT NULL,
     "data" JSONB NOT NULL,
     "version" INTEGER NOT NULL DEFAULT 1,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "whatsapp_creds_pkey" PRIMARY KEY ("session_id")
 );
@@ -447,15 +462,137 @@ CREATE TABLE "public"."whatsapp_key" (
 CREATE TABLE "public"."whatsapp_message_log" (
     "id" TEXT NOT NULL,
     "session_id" TEXT NOT NULL,
-    "direction" TEXT NOT NULL,
+    "direction" "public"."WhatsappDirection" NOT NULL,
     "jid" TEXT NOT NULL,
+    "from_jid" TEXT NOT NULL,
+    "to_jid" TEXT NOT NULL,
+    "from_number" TEXT,
+    "to_number" TEXT,
     "message_id" TEXT,
     "message" JSONB NOT NULL,
+    "message_type" "public"."WhatsappMessageType" NOT NULL,
     "status" TEXT,
     "error" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "whatsapp_message_log_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_template_variable" (
+    "id" TEXT NOT NULL,
+    "template_id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "label" TEXT,
+    "description" TEXT,
+    "required" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "whatsapp_template_variable_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."whatsapp_template" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "message_type" "public"."WhatsappMessageType" NOT NULL DEFAULT 'TEXT',
+    "account_id" TEXT,
+    "example_vars" JSONB,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "whatsapp_template_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."notification" (
+    "id" TEXT NOT NULL,
+    "notif_id" TEXT NOT NULL,
+    "notif_identifier" TEXT NOT NULL,
+    "loading" BOOLEAN NOT NULL DEFAULT true,
+    "status" BOOLEAN NOT NULL DEFAULT false,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "category" TEXT,
+    "link" TEXT,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."vlan_c320" (
+    "id" TEXT NOT NULL,
+    "olt_id" TEXT NOT NULL,
+    "profile_name" TEXT NOT NULL,
+    "tag_mode" TEXT NOT NULL,
+    "vlan" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "vlan_c320_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."tcont_c320" (
+    "id" TEXT NOT NULL,
+    "olt_id" TEXT NOT NULL,
+    "profile_name" TEXT NOT NULL,
+    "fbw" INTEGER NOT NULL,
+    "abw" INTEGER NOT NULL,
+    "mbw" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "tcont_c320_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."traffic_c320" (
+    "id" TEXT NOT NULL,
+    "olt_id" TEXT NOT NULL,
+    "profile_name" TEXT NOT NULL,
+    "sir" INTEGER NOT NULL,
+    "pir" INTEGER NOT NULL,
+    "cbs" TEXT NOT NULL,
+    "pbs" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "traffic_c320_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."uncfg_c320" (
+    "id" TEXT NOT NULL,
+    "olt_id" TEXT NOT NULL,
+    "onu_index" TEXT NOT NULL,
+    "serial_number" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(3) NOT NULL,
+
+    CONSTRAINT "uncfg_c320_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."http_log" (
+    "id" TEXT NOT NULL,
+    "method" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "headers" JSONB,
+    "body" TEXT,
+    "response" TEXT,
+    "status" INTEGER,
+    "error" TEXT,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "http_log_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -629,6 +766,30 @@ CREATE INDEX "whatsapp_message_log_session_id_created_at_idx" ON "public"."whats
 -- CreateIndex
 CREATE INDEX "whatsapp_message_log_jid_idx" ON "public"."whatsapp_message_log"("jid");
 
+-- CreateIndex
+CREATE INDEX "whatsapp_message_log_from_number_idx" ON "public"."whatsapp_message_log"("from_number");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_message_log_to_number_idx" ON "public"."whatsapp_message_log"("to_number");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_template_variable_template_id_idx" ON "public"."whatsapp_template_variable"("template_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "whatsapp_template_variable_template_id_key_key" ON "public"."whatsapp_template_variable"("template_id", "key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "whatsapp_template_code_key" ON "public"."whatsapp_template"("code");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_template_account_id_idx" ON "public"."whatsapp_template"("account_id");
+
+-- CreateIndex
+CREATE INDEX "whatsapp_template_code_idx" ON "public"."whatsapp_template"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "uncfg_c320_onu_index_olt_id_key" ON "public"."uncfg_c320"("onu_index", "olt_id");
+
 -- AddForeignKey
 ALTER TABLE "public"."users" ADD CONSTRAINT "users_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."roles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
@@ -699,7 +860,7 @@ ALTER TABLE "public"."invoice" ADD CONSTRAINT "invoice_subscription_id_fkey" FOR
 ALTER TABLE "public"."invoice_detail" ADD CONSTRAINT "invoice_detail_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "public"."subscriptions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."invoice_detail" ADD CONSTRAINT "invoice_detail_invoice_no_fkey" FOREIGN KEY ("invoice_no") REFERENCES "public"."invoice"("invoice_no") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."invoice_detail" ADD CONSTRAINT "invoice_detail_invoice_no_fkey" FOREIGN KEY ("invoice_no") REFERENCES "public"."invoice"("invoice_no") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."technitian_team_member" ADD CONSTRAINT "technitian_team_member_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."technitian_team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -742,3 +903,21 @@ ALTER TABLE "public"."whatsapp_key" ADD CONSTRAINT "whatsapp_key_session_id_fkey
 
 -- AddForeignKey
 ALTER TABLE "public"."whatsapp_message_log" ADD CONSTRAINT "whatsapp_message_log_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."whatsapp_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."whatsapp_template_variable" ADD CONSTRAINT "whatsapp_template_variable_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."whatsapp_template"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."whatsapp_template" ADD CONSTRAINT "whatsapp_template_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "public"."whatsapp_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."vlan_c320" ADD CONSTRAINT "vlan_c320_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."tcont_c320" ADD CONSTRAINT "tcont_c320_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."traffic_c320" ADD CONSTRAINT "traffic_c320_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."uncfg_c320" ADD CONSTRAINT "uncfg_c320_olt_id_fkey" FOREIGN KEY ("olt_id") REFERENCES "public"."olt"("id") ON DELETE CASCADE ON UPDATE CASCADE;

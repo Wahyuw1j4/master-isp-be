@@ -39,8 +39,8 @@ model users {
   email                        String                   @unique
   passwordHash                 String
   sessionVersion               Int                      @default(1) // bump untuk tendang semua sesi user
-  createdAt                    DateTime                 @default(now())
-  updatedAt                    DateTime                 @updatedAt
+  createdAt                    DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt                    DateTime                 @updatedAt @db.Timestamptz(3)
   roleId                       String?
   role                         roles?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
   metaData                     Json?
@@ -63,8 +63,8 @@ model roles {
   id          String   @id @default(cuid())
   name        String   @unique
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   // relations
   roleScopes role_scopes[]
@@ -75,8 +75,8 @@ model scopes {
   id          String   @id @default(cuid())
   name        String   @unique // "subscription.read"
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   // relations
   roleScopes role_scopes[]
@@ -119,10 +119,10 @@ model sessions {
   userId         String
   userAgent      String?
   ipAddr         String? // simpan IP sebagai string
-  createdAt      DateTime  @default(now())
-  lastSeenAt     DateTime  @default(now())
-  expiresAt      DateTime // TTL absolut (mis. now()+15m)
-  revokedAt      DateTime?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  lastSeenAt     DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime // TTL absolut (mis. now()+15m) @db.Timestamptz(3)
+  revokedAt      DateTime? @db.Timestamptz(3)
   sessionVersion Int // snapshot dari users.sessionVersion saat login
 
   user users @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -144,8 +144,8 @@ model customers {
   ktp_photo  String?
   password   String?
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   // relations
   subscriptions        subscriptions[]
@@ -160,10 +160,10 @@ model services {
   name       String
   price      Float
   speed      Float
-  created_at DateTime @default(now())
+  created_at DateTime @default(now()) @db.Timestamptz(3)
   discount   Float    @default(0)
   is_active  Boolean  @default(true)
-  updated_at DateTime @updatedAt
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   // relations
   subscriptions subscriptions[]
@@ -189,22 +189,22 @@ model subscriptions {
   postal_code    String? // postal code
 
   // device / location fields
-  oid_identifier String?
-  serial_number  String?
-  vlan           Int?
-  vlan_profile   String?
+  oid_identifier  String?
+  serial_number   String?
+  vlan            Int?
+  vlan_profile    String?
   traffic_profile String?
-  onu_number     Int?
-  mac_address    String?
-  status         String?
-  latitude       Float?
-  longitude      Float?
-  odc_id         String?
-  odc            odc?    @relation(fields: [odc_id], references: [id], onDelete: SetNull)
-  olt_id         String?
-  olt            olt?    @relation(fields: [olt_id], references: [id], onDelete: SetNull)
-  odp_id         String?
-  odp            odp?    @relation(fields: [odp_id], references: [id], onDelete: SetNull)
+  onu_number      Int?
+  mac_address     String?
+  status          String?
+  latitude        Float?
+  longitude       Float?
+  odc_id          String?
+  odc             odc?    @relation(fields: [odc_id], references: [id], onDelete: SetNull)
+  olt_id          String?
+  olt             olt?    @relation(fields: [olt_id], references: [id], onDelete: SetNull)
+  odp_id          String?
+  odp             odp?    @relation(fields: [odp_id], references: [id], onDelete: SetNull)
 
   is_static_ip Boolean @default(false)
   ip_address   String?
@@ -226,7 +226,7 @@ model subscriptions {
   invoice_details      invoice_detail[]
   ticket_subscriptions ticket_subscription[]
 
-  installation_date       DateTime?
+  installation_date       DateTime?        @db.Timestamptz(3)
   installation_by_team_id String?
   installation_by_team    technitian_team? @relation(fields: [installation_by_team_id], references: [id])
   installation_by_user_id String?
@@ -234,11 +234,11 @@ model subscriptions {
   created_by              String?
   created_by_user         users?           @relation("Creator", fields: [created_by], references: [id], onDelete: SetNull)
 
-  next_invoice_date DateTime?
+  next_invoice_date DateTime? @db.Timestamptz(3)
 
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
   @@index([installation_by_team_id])
   @@index([installation_by_user_id])
@@ -278,8 +278,8 @@ model snmp_values {
   metric_key String
   oid        String
   value      String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([onu_id, metric_key])
   @@index([onu_id, metric_key, created_at(sort: Desc)])
@@ -323,14 +323,15 @@ model olt {
   password        String?         @db.VarChar(100)
   read_community  String?         @db.VarChar(100)
   write_community String?         @db.VarChar(100)
+  port_capacity   Int
   latitude        Float?
   longitude       Float?
   odcs            odc[]
   subscriptions   subscriptions[]
   odps            odp[]
   onus            onus[]
-  created_at      DateTime        @default(now())
-  updated_at      DateTime        @updatedAt
+  created_at      DateTime        @default(now()) @db.Timestamptz(3)
+  updated_at      DateTime        @updatedAt @db.Timestamptz(3)
   vlanC320s       vlan_c320[]
   tcontC320s      tcont_c320[]
   trafficC320s    traffic_c320[]
@@ -344,10 +345,11 @@ model odc {
   longitude     Float?
   olt_id        String
   olt           olt             @relation(fields: [olt_id], references: [id])
+  port_capacity Int
   subscriptions subscriptions[]
   odps          odp[]
-  created_at    DateTime        @default(now())
-  updated_at    DateTime        @updatedAt
+  created_at    DateTime        @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime        @updatedAt @db.Timestamptz(3)
 }
 
 model odp {
@@ -359,9 +361,10 @@ model odp {
   odc           odc             @relation(fields: [odc_id], references: [id])
   olt_id        String
   olt           olt             @relation(fields: [olt_id], references: [id])
+  port_capacity Int
   subscriptions subscriptions[]
-  created_at    DateTime        @default(now())
-  updated_at    DateTime        @updatedAt
+  created_at    DateTime        @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime        @updatedAt @db.Timestamptz(3)
 }
 
 model fiber_route {
@@ -369,8 +372,8 @@ model fiber_route {
   name       String   @db.VarChar(100)
   polyline   Json[]
   color      String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model invoice {
@@ -382,18 +385,18 @@ model invoice {
 
   total_invoice Int     @default(0)
   has_tax       Boolean @default(false)
-  tax           Float     @default(0.11)
+  tax           Float   @default(0.11)
   tax_amount    Int     @default(0)
   grand_total   Int     @default(0)
 
-  paid_at        DateTime?
+  paid_at        DateTime? @db.Timestamptz(3)
   payment_method String?
   receive_by     String?
   approved_by    String?
 
   pg_id          String?
   pg_ref         String?
-  pg_created     DateTime?
+  pg_created     DateTime? @db.Timestamptz(3)
   no_va          String?
   qris           String?
   payment_amount Int?
@@ -401,11 +404,11 @@ model invoice {
 
   description String?
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   payment_proof          String?
-  last_invoice_sent_date DateTime?
+  last_invoice_sent_date DateTime? @db.Timestamptz(3)
 
   subscription_id String?
   subscription    subscriptions? @relation(fields: [subscription_id], references: [id])
@@ -429,14 +432,14 @@ model invoice_detail {
 
   status      String?
   index_month Int?
-  date        DateTime?
+  date        DateTime? @db.Timestamptz(3)
 
   billing_name        String
   billing_description String?
   billing_price       Float
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([invoice_no])
   @@index([subscription_id])
@@ -449,8 +452,8 @@ model vendor_tenchnitian {
   contact_person String?
   email          String?  @db.VarChar(255)
   address        String?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model technitian_team {
@@ -458,8 +461,8 @@ model technitian_team {
   name       String
   status     String?  @default("active")
   leader     String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   // relations
   members           technitian_team_member[]
@@ -476,8 +479,8 @@ model technitian_team_member {
   user_id String
   user    users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([team_id])
   @@index([user_id])
@@ -494,15 +497,14 @@ model ticket_subscription {
   technician_update_desc  String?
   work_by                 String?
   open_by                 String?
-  open_at                 DateTime?
-  closed_at               DateTime?
+  closed_at               DateTime?      @db.Timestamptz(3)
   created_by              String?
-  ticket_close_date       DateTime?
+  ticket_close_date       DateTime?      @db.Timestamptz(3)
   status                  String?        @default("Open")
   picture_from_customer   String?
   picture_from_technician String?
-  created_at              DateTime       @default(now())
-  updated_at              DateTime       @updatedAt
+  created_at              DateTime       @default(now()) @db.Timestamptz(3)
+  updated_at              DateTime       @updatedAt @db.Timestamptz(3)
   submit_by               String?
   submit_by_user          users?         @relation("SubmittedTickets", fields: [submit_by], references: [id], onDelete: SetNull)
   handle_by_team          String?
@@ -528,8 +530,8 @@ model ticket_site {
   handle_by_team     String?
   handle_by_team_rel technitian_team?     @relation(fields: [handle_by_team], references: [id], onDelete: SetNull)
   created_by         String?
-  created_at         DateTime             @default(now())
-  updated_at         DateTime             @updatedAt
+  created_at         DateTime             @default(now()) @db.Timestamptz(3)
+  updated_at         DateTime             @updatedAt @db.Timestamptz(3)
   ticket_details     ticket_site_detail[]
 
   @@index([mt_site_id])
@@ -543,12 +545,12 @@ model ticket_site_detail {
   site_id                    String
   solved_picture             String?
   technician_report          String?
-  solved_at                  DateTime?
+  solved_at                  DateTime?    @db.Timestamptz(3)
   solved_by                  String?
   solved_by_user             users?       @relation("SolvedByUser", fields: [solved_by], references: [id], onDelete: SetNull)
   status                     String?      @default("open")
-  created_at                 DateTime     @default(now())
-  updated_at                 DateTime     @updatedAt
+  created_at                 DateTime     @default(now()) @db.Timestamptz(3)
+  updated_at                 DateTime     @updatedAt @db.Timestamptz(3)
 
   @@index([mt_site_id])
   @@index([site_id])
@@ -578,8 +580,8 @@ model whatsapp_account {
   is_business  Boolean             @default(false)
   sessions     whatsapp_session[]
   templates    whatsapp_template[]
-  created_at   DateTime            @default(now())
-  updated_at   DateTime            @updatedAt
+  created_at   DateTime            @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime            @updatedAt @db.Timestamptz(3)
 }
 
 model whatsapp_session {
@@ -589,17 +591,17 @@ model whatsapp_session {
   name                String                 @unique
   status              wa_session_status      @default(CONNECTING)
   qr_raw              String?
-  qr_updated_at       DateTime?
-  connected_at        DateTime?
-  disconnected_at     DateTime?
-  last_conn_update_at DateTime?
+  qr_updated_at       DateTime?              @db.Timestamptz(3)
+  connected_at        DateTime?              @db.Timestamptz(3)
+  disconnected_at     DateTime?              @db.Timestamptz(3)
+  last_conn_update_at DateTime?              @db.Timestamptz(3)
   webhook_url         String?
   meta                Json?
   creds               whatsapp_creds?
   keys                whatsapp_key[]
   logs                whatsapp_message_log[]
-  created_at          DateTime               @default(now())
-  updated_at          DateTime               @updatedAt
+  created_at          DateTime               @default(now()) @db.Timestamptz(3)
+  updated_at          DateTime               @updatedAt @db.Timestamptz(3)
 }
 
 model whatsapp_creds {
@@ -607,8 +609,8 @@ model whatsapp_creds {
   session    whatsapp_session @relation(fields: [session_id], references: [id], onDelete: Cascade)
   data       Json
   version    Int              @default(1)
-  created_at DateTime         @default(now())
-  updated_at DateTime         @updatedAt
+  created_at DateTime         @default(now()) @db.Timestamptz(3)
+  updated_at DateTime         @updatedAt @db.Timestamptz(3)
 }
 
 model whatsapp_key {
@@ -659,7 +661,7 @@ model whatsapp_message_log {
   message_type WhatsappMessageType
   status       String?
   error        String?
-  created_at   DateTime            @default(now())
+  created_at   DateTime            @default(now()) @db.Timestamptz(3)
 
   @@index([session_id, created_at])
   @@index([jid])
@@ -675,8 +677,8 @@ model whatsapp_template_variable {
   label       String?
   description String?
   required    Boolean           @default(true)
-  created_at  DateTime          @default(now())
-  updated_at  DateTime          @updatedAt
+  created_at  DateTime          @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime          @updatedAt @db.Timestamptz(3)
 
   @@unique([template_id, key])
   @@index([template_id])
@@ -693,8 +695,8 @@ model whatsapp_template {
   example_vars Json?
   is_active    Boolean                      @default(true)
   variables    whatsapp_template_variable[]
-  created_at   DateTime                     @default(now())
-  updated_at   DateTime                     @updatedAt
+  created_at   DateTime                     @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime                     @updatedAt @db.Timestamptz(3)
 
   @@index([account_id])
   @@index([code])
@@ -710,8 +712,8 @@ model notification {
   message          String
   category         String?
   link             String?
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  created_at       DateTime @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model vlan_c320 {
@@ -721,8 +723,8 @@ model vlan_c320 {
   profile_name String
   tag_mode     String
   vlan         Int
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  created_at   DateTime @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model tcont_c320 {
@@ -734,8 +736,8 @@ model tcont_c320 {
   abw          Int
   mbw          Int
   type         String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  created_at   DateTime @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model traffic_c320 {
@@ -747,8 +749,8 @@ model traffic_c320 {
   pir          Int
   cbs          String
   pbs          String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  created_at   DateTime @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model uncfg_c320 {
@@ -757,8 +759,8 @@ model uncfg_c320 {
   olt           olt      @relation(fields: [olt_id], references: [id], onDelete: Cascade)
   onu_index     String
   serial_number String
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  created_at    DateTime @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([onu_index, olt_id], name: "onu_index_olt_id")
 }
@@ -772,5 +774,5 @@ model http_log {
   response   String?
   status     Int?
   error      String?
-  created_at DateTime @default(now())
+  created_at DateTime @default(now()) @db.Timestamptz(3)
 }

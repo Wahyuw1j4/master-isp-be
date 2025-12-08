@@ -12,6 +12,33 @@ class SubscriptionController extends BaseController {
         this.prefixR2 = 'subscription/';
     }
 
+
+    generateCustomerID = async () => {
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const prefix = `${yy}${mm}`; // yymm
+
+        // Cari data terakhir yang id-nya diawali dengan prefix yymm
+        const last = await prismaQuery(() =>
+            prisma.subscriptions.findFirst({
+                where: { id: { startsWith: `SUBS${prefix}` } },
+                orderBy: { created_at: 'desc' }
+            })
+        );
+
+        let nextNum = 1;
+        if (last && typeof last.id === 'string') {
+            // ambil bagian increment (4 digit) setelah yymm
+            const seqStr = last.id.slice(8); // karena prefix SUBSyymm panjang 8
+            const seq = parseInt(seqStr, 10);
+            if (!isNaN(seq)) nextNum = seq + 1;
+        }
+
+        const seqPadded = String(nextNum).padStart(4, '0'); // iiii 4 digit
+        return `SUBS${prefix}${seqPadded}`; // hasil: yymmiiii
+    }
+
     getCoverage = async (req, res, next) => {
         try {
             const subscriptions = await prismaQuery(() =>
@@ -511,29 +538,7 @@ class SubscriptionController extends BaseController {
         }
     }
 
-    async generateSubscriptionId() {
-        // Format: yymmiiiii
-        // yy: last 2 digits of year, mm: 2 digit month, iiiii: sequence padded to 5 digits, reset each month
-        const now = new Date();
-        const yy = String(now.getFullYear()).slice(-2);
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const prefix = `${yy}${mm}`;
 
-        // find the latest subscription id for this month
-        const last = await prisma.subscriptions.findFirst({
-            where: { id: { startsWith: prefix } },
-            orderBy: { created_at: 'desc' }
-        });
-
-        let seq = 1;
-        if (last && typeof last.id === 'string' && last.id.length >= 9) {
-            const lastSeq = parseInt(last.id.slice(4), 10);
-            if (!Number.isNaN(lastSeq)) seq = lastSeq + 1;
-        }
-
-        const seqStr = String(seq).padStart(5, '0');
-        return `${prefix}${seqStr}`;
-    }
 
 
     create = async (req, res, next) => {
@@ -560,7 +565,7 @@ class SubscriptionController extends BaseController {
 
     subscriptionSetup = async (req, res, next) => {
         try {
-            const { olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password, vlan, vlan_profile, traffic_profile, onu_number  } = req.body;
+            const { olt_id, odc_id, odp_id, odp_distance, pppoe_username, pppoe_password, vlan, vlan_profile, traffic_profile, onu_number } = req.body;
             const subscription = await prisma.subscriptions.update({
                 where: { id: req.params.id },
                 data: {
@@ -619,7 +624,7 @@ class SubscriptionController extends BaseController {
     }
 
     deleteOnu = async (req, res, next) => {
-        
+
         try {
             if (!req.body.subscription_id) {
                 return this.sendResponse(res, 400, "subscription_id is required");
@@ -797,10 +802,10 @@ class SubscriptionController extends BaseController {
                 });
 
                 const subscription = await tx.subscriptions.update({
-                        where: { id },
-                        data: { serial_number, odp_distance: parseInt(odp_distance), form_installation: fileName },
-                        include: { service: true }
-                    });
+                    where: { id },
+                    data: { serial_number, odp_distance: parseInt(odp_distance), form_installation: fileName },
+                    include: { service: true }
+                });
 
                 const invoice = await createInvoice({ tx, afterCommit }, {
                     customerId: subscription.customer_id,
