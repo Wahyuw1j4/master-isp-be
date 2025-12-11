@@ -1,3 +1,4 @@
+import 'dotenv/config'
 
 // Setup server Express + RBAC + session DB-based
 import express from 'express';

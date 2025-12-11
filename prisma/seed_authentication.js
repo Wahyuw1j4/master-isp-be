@@ -1,4 +1,4 @@
-import { prisma } from '../src/prisma/prisma.js';
+import { prisma } from '../src/prisma.js';
 import bcrypt from 'bcryptjs';
 
 // Resources and CRUD actions to generate permissions (scopes)

@@ -1,5 +1,5 @@
 // src/http/BaseController.js
-import { Prisma } from "@prisma/client";
+import { prisma } from "../prisma.js";
 
 class BaseController {
     sendResponse(res, statusCode, message, data = undefined) {
@@ -11,7 +11,7 @@ class BaseController {
     }
 
     handlePrismaError(error) {
-        if (error instanceof Prisma.PrismaClientValidationError) {
+        if (error instanceof prisma.PrismaClientValidationError) {
             return {
                 status: "error",
                 code: "VALIDATION_ERROR",
@@ -20,7 +20,7 @@ class BaseController {
             };
         }
 
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error instanceof prisma.PrismaClientKnownRequestError) {
             switch (error.code) {
                 case "P2002":
                     return {

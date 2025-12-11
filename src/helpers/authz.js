@@ -1,5 +1,5 @@
 // Helper untuk RBAC: ambil dan cek scope user
-import {prisma} from '../prisma/prisma.js';
+import { prisma } from '../prisma.js';
 
 export async function getScopesForUser(userId) {
   // Ambil scope dari role (melalui field roleId di users) dan user scope

@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { registerWorker } from "./config/bull.js";
 import { compressAndUploadImageToR2 } from "../helpers/r2Helper.js";
 import { uploadR2Queue } from "./queues/uploadR2.js";

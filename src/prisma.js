@@ -1,4 +1,7 @@
-import { PrismaClient, Prisma } from "../generated/prisma/index.js";
+import 'dotenv/config'
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient, Prisma } from "../generated/prisma/client.ts";
 export class AppError extends Error {
   constructor({ code = "UNKNOWN_ERROR", message = "Unexpected error occurred", status = 400, meta = undefined }) {
     super(message);
@@ -10,10 +13,9 @@ export class AppError extends Error {
   }
 }
 
-
-const prisma = new PrismaClient({
-  log: [],
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter, log: [] });
 
 
 prisma.$on("query", (e) => {
