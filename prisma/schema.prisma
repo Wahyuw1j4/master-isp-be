@@ -36,6 +36,7 @@ model users {
   fullName                     String
   username                     String                   @unique
   email                        String                   @unique
+  phoneNumber                  String?                  @unique
   passwordHash                 String
   sessionVersion               Int                      @default(1) // bump untuk tendang semua sesi user
   createdAt                    DateTime                 @default(now()) @db.Timestamptz(3)

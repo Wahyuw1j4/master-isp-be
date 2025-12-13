@@ -42,16 +42,17 @@ router.post('/users', requireSession, requireScope(['user.create']), userControl
 // Roles
 router.get('/roles', requireSession, requireScope(['role.read']), roleController.list);
 router.post('/roles', requireSession, requireScope(['role.create']), roleController.create);
-
-router.delete('/roles/:id', requireSession, requireScope(['role.delete']), roleController.delete);
-router.post('/roles/:roleId/scopes/:scopeId', requireSession, requireScope(['role.scope.add']), roleController.addScope);
-
 // Scopes
 router.get('/scopes', requireSession, requireScope(['scope.read']), ScopeController.list);
 router.post('/scopes', requireSession, requireScope(['scope.create']), ScopeController.create);
 
 // Admin
 router.post('/admin/users/:userId/set-roles', requireSession, requireScope(['admin.update']), AdminController.setRoles);
+
+router.get('/users/:id/profile/', requireSession, userController.getProfile);
+router.put('/users/:id/profile', requireSession, userController.updateProfile);
+router.put('/users/:id/profile/password', requireSession, userController.changePassword);
+router.put('/users/:id/profile/preferences', requireSession, requireScope(['user.read']), userController.updatePreferences);
 
 // Sessions
 router.get('/sessions/me', requireSession, SessionController.listMine);
